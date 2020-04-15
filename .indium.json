@@ -4,9 +4,8 @@
       "name": "Servidor OpenFood",
       "type": "node",
       "program": "node",
-      "args": "main.js",
+      "args": "servidor_async.js",
       "host": "127.0.0.1",
-      "url": "http://127.0.0.1/index.html",
       "port": 8080
     }
   ]
