@@ -16,64 +16,189 @@
 /* -------------------------------------------------------------------
    -------           PARÁMETROS DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
-const MAX_NUM_GRUPOS = 10;
+const ALGUNOS_VALORES_NUTRICIONALES = [
+  'alcohol', // % alcohol
+  'alpha-linolenic-acid',
+  'arachidic-acid',
+  'arachidonic-acid',
+  'behenic-acid',
+  'bicarbonate',
+  'biotin',
+  'butyric-acid',
+  'caffeine',
+  'calcium',
+  'capric-acid',
+  'caproic-acid',
+  'caprylic-acid',
+  'carbohydrates',
+  'casein',
+  'cerotic-acid',
+  'chloride',
+  'cholesterol',
+  'chromium',
+  'copper',
+  'dihomo-gamma-linolenic-acid',
+  'docosahexaenoic-acid',
+  'eicosapentaenoic-acid',
+  'elaidic-acid',
+  'energy',
+  'erucic-acid',
+  'fat',
+  'fiber',
+  'fluoride',
+  'fructose',
+  'gamma-linolenic-acid',
+  'glucose',
+  'gondoic-acid',
+  'iodine',
+  'iron',
+  'lactose',
+  'lauric-acid',
+  'lignoceric-acid',
+  'linoleic-acid',
+  'magnesium',
+  'maltodextrins',
+  'maltose',
+  'manganese',
+  'mead-acid',
+  'melissic-acid',
+  'molybdenum',
+  'monounsaturated-fat',
+  'montanic-acid',
+  'myristic-acid',
+  'nervonic-acid',
+  'nucleotides',
+  'oleic-acid',
+  'omega-3-fat',
+  'omega-6-fat',
+  'omega-9-fat',
+  'palmitic-acid',
+  'pantothenic-acid',
+  'phosphorus',
+  'polyols',
+  'polyunsaturated-fat',
+  'potassium',
+  'proteins',
+  'saturated-fat',
+  'selenium',
+  'serum-proteins',
+  'silica',
+  'sodium',
+  'starch',
+  'stearic-acid',
+  'sucrose',
+  'sugars',
+  'taurine',
+  'trans-fat',
+  'vitamin-a',
+  'vitamin-b1',
+  'vitamin-b12',
+  'vitamin-b2',
+  'vitamin-b6',
+  'vitamin-b9',
+  'vitamin-c',
+  'vitamin-d',
+  'vitamin-e',
+  'vitamin-k',
+  'vitamin-pp',
+  'zinc',
+];
 
 const QUERY_VALIDAS =
       [
 	{
-	  'nombre': 'tagtype_',
-	  'func': func_tagtype,
+	  'nombre_rx': /^tagtype_[0-9]+$/,
+	  'func': func_operador,
+	  'operador_': 'nutriment_contains_',
+	  'tipos': [
+	    'brands',
+	    'categories',
+	    'packaging',
+	    'labels',
+	    'origins',
+	    'manufacturing_places',
+	    'emb_codes',
+	    'purchase_places',
+	    'stores',
+	    'countries',
+	    'additives',
+	    'allergens',
+	    'traces',
+	    'nutrition_grades',
+	    'states'
+	  ],
+	  'operadores': ['contains', 'does_not_contains'],
+	  'operando_': 'tag_',
+	  'filtro': filtro_contains,
+	},
+	{
+	  'nombre_rx': /^nutriment_[0-9]+$/,
+	  'func': func_operador,
+	  'operador_': 'nutriment_compare_',
+	  'operadores': ['lt','lte','gt','gte','eq'],
+	  'operando_': 'nutriment_value_',
+	  'filtro': filtro_comparar,
 	}
       ];
 
-const CTE_TAGTYPES = [
-  'brands',
-  'categories',
-  'packaging',
-  'labels',
-  'origins',
-  'manufacturing_places',
-  'emb_codes',
-  'purchase_places',
-  'stores',
-  'countries',
-  'additives',
-  'allergens',
-  'traces',
-  'nutrition_grades',
-  'states'
-];
-const CTE_TAGTYPE_CONTAINS = ['contains','does_not_contains'];
+function filtro_contains(tipo,op,val) {
+  let res = {}; // nuevo objeto vacio
+  if (op === 'contains') {
+    res[tipo] = val;
+  } else if ( op === 'does_not_contains' ) {
+    res[tipo] = { $nin: [val] };
+  };
+  // si no es 'contains'/'does_not_contains'
+  return res;
+} // filtro_contains
 
-function func_tagtype(query,tag) {
-  console.log(`func_tagtype(query,${tag})`);
-  let [_, grupo] = tag.split('_');
-  let tagtype = query[tag];
-  let operador = query['tag_contains_'+grupo];
-  let operando2 = query['tag_'+grupo];  
-
-  console.log(`func_tagtype con grupo=${grupo}, tagtype=${tagtype}, operador=${operador}, operando2=${operando2}`);
-  
+function filtro_comparar(tipo,op,val) {
   let res = {};
-  // si se han encontrado todos los componentes del filtro...
-  if (grupo && tagtype && operador && operando2) {
-    let tags_field = tagtype + "_tags";
-    if ((CTE_TAGTYPES.indexOf(tagtype) >= 0) && (CTE_TAGTYPE_CONTAINS.indexOf(operador) >= 0)) { // [1]
-      if (operador === CTE_TAGTYPE_CONTAINS[0]) {
-	res[tags_field] = operando2;
-      } else if ( operador === CTE_TAGTYPE_CONTAINS[1] ) {
-	res[tags_field] = { $nin: [operando2] };
-      } else {
-	console.log('Error el operador tagtype no es [does_not_]contains'); // nunca se llega aqui ya que antes se comprueba en [1]
-      }
-    } else {
-      console.log('Error de operando1 u operador para el filtro tagtype');
-    };
-  } else {
-    console.log('Error de operandos/operador del filtro tagtype');
-  }
 
-  console.log(`func_tagtype = (${tag})=${res}`);
+  if (this['operadores'].indexOf(op) >= 0) {
+    let op_symbol = Symbol(op);
+    res[tipo] = { op_symbol: val };
+  };
+
+  return res;
+} // filtro_comparar
+
+// Función que busca los parámetros necesarios para componer un filtro por tag
+// en una query string.
+//
+// procesa: tagtype_ y nutriment_
+//
+// Parámetros:
+//  - query: un objeto con los pares de la querystring {'key':'value',...}
+//  - prop: valor del parámetro encontrado que activa esta función (ej: tagtype_0)
+//  [this: el objeto que contiene restricciones de datos del filtro ]
+// Devuelve:
+//  - un objeto-filtro de MongoDB.
+//
+//  Ejemplo:
+//
+//     tagtype_0=categories      // una de las categorias
+//     tag_contains_0=contains
+//     tag_0=cereals             // una palabra entera
+function func_operador(query,prop) {
+  console.log(`func_tagtype(query,${prop})`);
+  let [_, grupo] = prop.split('_');
+  // obtener el valor (tipo) del parámetro...
+  let tipo = query[prop];
+  // ...y comprobar si es válido.
+  assert(this['tipos'].indexOf(tipo) >= 0);
+  // obtener el operador de este filtro...
+  let operador = query[this['operador_']+grupo];
+  // ...y comprobar si es válido
+  assert(this['operadores'].indexOf(operador) >= 0);
+  // por último obtener el valor del operando...
+  let operando = query[this['operando_']+grupo];  
+
+  console.log(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}, operando2=${operando2}`);
+  
+  let res = this['filtro'](tipo,operador,operando);
+  
+  console.log(`func_tagtype = (${prop})=${res}`);
   return res;
 };
 
@@ -101,16 +226,15 @@ function query_search(query) {
   for (let key in query) {
 
     let obj_procesar = QUERY_VALIDAS.find((obj) => {
-
-      return key.startsWith(obj['nombre']);
+      return key.match(obj['nombre_rx']);
     });
     
-    console.log(` ++ ${obj_procesar} o ${JSON.stringify(obj_procesar)}`);
+//    console.log(` ++ ${obj_procesar} o ${JSON.stringify(obj_procesar)}`);
     if (obj_procesar) res.push(obj_procesar['func'](query,key));
   }
 
   return res;
-}; // parse_query
+}; // query_search
 
 module.exports = query_search;
 

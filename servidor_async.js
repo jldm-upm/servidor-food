@@ -54,9 +54,9 @@ const JSON_NOT_FOUND = { status:0, status_verbose: "object not found" }; // JSON
 
 const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_templates/product.json`, 'utf8')); // JSON plantilla producto
 
-const OPCIONES_BUSQUEDA_LIMITE_10 = {limit: 10};
+const OPCIONES_BUSQUEDA_LIMITE_10 = [{limit: 10}];
 
-const FILTRO_BUSQUEDA_IS_COMPLETE = {$and: [ {complete: {$eq: 1}} ] };
+const ARR_FILTRO_BUSQUEDA_IS_COMPLETE = [{complete: {$eq: 1}}, { complete: { $exists: true } }];
 /* -------------------------------------------------------------------
    -------               FUNCIONES AUXILIARES                  ------- 
    ------------------------------------------------------------------- */
@@ -382,7 +382,7 @@ function parse_check_search_syntax(query) {
 function api_search_products_json(req, res, next) {
   console.log('api_search_products_json');
 
-
+  return parse_qs(req.query);
 } // api_search_products_json
 
 /* -------------------------------------------------------------------
