@@ -16,7 +16,7 @@
 /* -------------------------------------------------------------------
    -------           PARÁMETROS DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
-const ALGUNOS_VALORES_NUTRICIONALES = [
+const nutricional_tipos = [
   'alcohol', // % alcohol
   'alpha-linolenic-acid',
   'arachidic-acid',
@@ -104,41 +104,106 @@ const ALGUNOS_VALORES_NUTRICIONALES = [
   'zinc',
 ];
 
+// Función auxiliar que devuelve una función que siempre
+// devuelve el parámetro con el que se ha creado.
+//
+// Parámetros:
+//   - valor: valor que devolverá la función devuelta
+// Devuelve:
+//   Una función que siempre devuelve el parámetro con el que se creó.
+function siempre(valor) {
+  return ( () => { return valor; } );
+}; // siempre
+
+// Función auxiliar que devuelve una función que comprueba si un valor
+// se encuentra en el array con el que se contruyó.
+//
+// Parámetros:
+//   - array: un array con el que se comprobará el valor pasado a la función devuelta
+// Devuelve:
+//   Una función al que se le pasa un valor y comprueba si se encontraba en el array parámetro.
+function contiene(array) {
+ return (val) => {
+   return (array.indexOf(val) >= 0);
+ };
+};
+
 const QUERY_VALIDAS =
       [
+	// tags:
 	{
 	  'nombre_rx': /^tagtype_[0-9]+$/,
 	  'func': func_operador,
-	  'operador_': 'nutriment_contains_',
-	  'tipos': [
-	    'brands',
-	    'categories',
-	    'packaging',
-	    'labels',
-	    'origins',
-	    'manufacturing_places',
-	    'emb_codes',
-	    'purchase_places',
-	    'stores',
-	    'countries',
-	    'additives',
-	    'allergens',
-	    'traces',
-	    'nutrition_grades',
-	    'states'
-	  ],
+	  'operador_': 'tag_contains_',
+	  'check_tipo': contiene(['brands',
+				  'categories',
+				  'packaging',
+				  'labels',
+				  'origins',
+				  'manufacturing_places',
+				  'emb_codes',
+				  'purchase_places',
+				  'stores',
+				  'countries',
+				  'additives',
+				  'allergens',
+				  'traces',
+				  'nutrition_grades',
+				  'states']),
 	  'operadores': ['contains', 'does_not_contains'],
 	  'operando_': 'tag_',
 	  'filtro': filtro_contains,
 	},
+	// nutrientes:
 	{
 	  'nombre_rx': /^nutriment_[0-9]+$/,
 	  'func': func_operador,
 	  'operador_': 'nutriment_compare_',
+	  'check_tipo': siempre(true),
 	  'operadores': ['lt','lte','gt','gte','eq'],
 	  'operando_': 'nutriment_value_',
 	  'filtro': filtro_comparar,
-	}
+	},
+	// ingredientes:
+	{
+	  'nombre_rx': /additives/,
+	  'func': func_value,
+	  'operador_': null,
+	  'check_tipo': contiene(['without_additives',
+				  'with_additives',
+				  'indifferent_additives'
+				 ]),
+	  'operadores': null,
+	  'operando': null,
+	  'operando_': null,
+	  'filtro': gen_filtro_contiene('additives_tags'),
+	},
+	{
+	  'nombre_rx': /ingredients_from_palm_oil/,
+	  'func': func_value,
+	  'operador_': null,
+	  'check_tipo': contiene(['without',
+				  'with',
+				  'indifferent'
+				 ]),
+	  'operadores': null,
+	  'operando': null,
+	  'operando_': null,
+	  'filtro': gen_filtro_contiene('ingredients_from_palm_oil_tags'),
+	},
+	{
+	  'nombre_rx': /ingredients_from_or_that_may_be_from_palm_oil/,
+	  'func': func_value,
+	  'operador_': null,
+	  'check_tipo': contiene(['without',
+				  'with',
+				  'indifferent'
+				 ]),
+	  'operadores': null,
+	  'operando': null,
+	  'operando_': null,
+	  'filtro': gen_filtro_contiene('ingredients_from_or_that_may_be_from_palm_oil_tags'),
+	},
       ];
 
 function filtro_contains(tipo,op,val) {
@@ -163,6 +228,22 @@ function filtro_comparar(tipo,op,val) {
   return res;
 } // filtro_comparar
 
+function gen_filtro_contiene(prop_array) {
+  return (tipo) => {
+    let res = {};
+
+    if (tipo.startsWith('indifferent')) {
+      res = {}; // redundante
+    } else if (tipo.startsWith('without')) {
+      res[prop_array] = { $exists: true, $eq: [] };
+    } else if (tipo.startsWith('with')) {
+      res[prop_array] = { $exists: true, $ne: [] };
+    };
+
+    return res;
+  };
+};
+
 // Función que busca los parámetros necesarios para componer un filtro por tag
 // en una query string.
 //
@@ -186,7 +267,7 @@ function func_operador(query,prop) {
   // obtener el valor (tipo) del parámetro...
   let tipo = query[prop];
   // ...y comprobar si es válido.
-  assert(this['tipos'].indexOf(tipo) >= 0);
+  assert(this['check_tipo'](tipo));
   // obtener el operador de este filtro...
   let operador = query[this['operador_']+grupo];
   // ...y comprobar si es válido

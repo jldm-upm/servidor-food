@@ -472,5 +472,5 @@ app.listen(PUERTO_SERVIDOR, INTERFAZ_SERVIDOR, function() {
   configurar(app, ClienteMongo);
 
   // print a message when the server starts listening
-  console.log("Iniciando servidor en " + PUERTO_SERVIDOR);
+  console.log(`Iniciando servidor en ${INTERFAZ_SERVIDOR}:${PUERTO_SERVIDOR}`);
 });
