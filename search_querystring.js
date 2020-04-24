@@ -10,6 +10,7 @@
 // -------------------------------------------------------------------
 //   Historia: + 13 Abr 2020 - Primera Versión
 //             + 15 Abr 2020 - Finalizado test+correciones de func_tagtype
+//             + 24 Abr 2020 - Corregido func_value
 // *******************************************************************
 'use strict';
 
@@ -128,6 +129,17 @@ function contiene(array) {
  };
 };
 
+// estructura en la que para cada filtro se mantiene los datos necesarios para recuperar y comprobar los parámetros necesarios de cada filtro.
+//
+// - 'nombre_rx': expresión regular de coincidencia con un parámetro que hace saltar el filtro
+// - 'func': función a la que se pasa la querystring como un objeto: {'key1':'value1',...} y el
+//     valor de la propiedad (coincidente con 'nombre_rx') y devuelve el objeto que representa
+//     el filtro mongodb
+// - 'operador_': prefijo del parámetro que contendrá el operador
+// - 'check_tipo': función que devuelve verdadero o falso si el valor (operando) a comparar es válido
+// - 'operadores': valores válidos para el parámetro coincidente con 'operador_'+num
+// - 'operando': prefijo del parámetro que contiene el operando
+// - 'filtro': función que se utiliza para generar el filtro mongodb (this es esta estructura de filtro) es llamada por 'func'
 const QUERY_VALIDAS =
       [
 	// tags:
@@ -282,6 +294,22 @@ function func_operador(query,prop) {
   console.log(`func_tagtype = (${prop})=${res}`);
   return res;
 };
+
+// Función que busca los parámetros necesarios para componer un filtro por valor.
+//
+// Parámetros:
+//  - query: un objeto con los pares de la querystring {'key':'value',...}
+//  - prop: valor del parámetro encontrado que activa esta función (ej: )
+//  [this: el objeto que contiene restricciones de datos del filtro ]
+// Devuelve:
+//  - un objeto-filtro de MongoDB.
+function func_value(query,prop) {
+  console.log(`func_value(query,${prop})`);
+  let res = this['filtro'](tipo,operador,operando);
+  
+  console.log(`func_value = (${prop})=${res}`);
+  return res;
+}
 
 /* -------------------------------------------------------------------
    -------               FUNCIONES AUXILIARES                  ------- 
