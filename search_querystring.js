@@ -17,6 +17,7 @@
 /* -------------------------------------------------------------------
    -------           PARÁMETROS DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
+// los valores nutricionales más comunes
 const nutricional_tipos = [
   'alcohol', // % alcohol
   'alpha-linolenic-acid',
@@ -330,7 +331,7 @@ function func_value(query,prop) {
 //  - query: un objeto con los pares de la querystring {'key':'value',...}
 // Devuelve:
 //  - array de objetos, cada uno un filtro de MongoDB.
-function query_search(query) {
+export default function query_search(query) {
   let res = [];
   for (let key in query) {
 
@@ -345,5 +346,5 @@ function query_search(query) {
   return res;
 }; // query_search
 
-module.exports = query_search;
+//module.exports = query_search;
 
