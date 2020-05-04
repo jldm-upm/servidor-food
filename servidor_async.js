@@ -70,9 +70,11 @@ const ARR_FILTRO_BUSQUEDA_IS_COMPLETE = [{complete: {$eq: 1}}, { complete: { $ex
 //  - objeto JSON con la respuesta del servidor.
 function componer_producto_json(producto_json) {
   console.log('componer_producto_json');
-  let json_res = {};
+  // let json_res = {};
 
-  return Object.assign(json_res, JSON_PRODUCT_TEMPLATE, producto_json);
+  //return Object.assign(json_res, JSON_PRODUCT_TEMPLATE, producto_json);
+  let json_res = { ...JSON_PRODUCT_TEMPLATE, ...producto_json};
+  return json_res;
 }; // componer_producto_json
 
 // -------------------------------------------------------------------
@@ -85,8 +87,9 @@ function componer_producto_json(producto_json) {
 //  json_not_found + {'objeto': codigo}
 function object_not_found_json(codigo, objeto) {
   console.log('object_not_found_json');
-  let res = {};
-  Object.assign(res, JSON_NOT_FOUND);
+  //let res = {};
+  //Object.assign(res, JSON_NOT_FOUND);
+  let res = { ...JSON_NOT_FOUND};
   
   res[objeto]=codigo;
   res['status_verbose'] = `${objeto} not found`;
@@ -125,18 +128,21 @@ function api_get_food_barcode_json(req, res, next) {
     if (err) {
       //      next(err);
       console.log('database not found');
-      Object.assign(json_res, JSON_NOT_FOUND, { status_verbose: "database not found" });
+      //Object.assign(json_res, JSON_NOT_FOUND, { status_verbose: "database not found" });
+      json_res={ ...JSON_NOT_FOUD,  status_verbose: "database not found" };
       res.send(json_res);
     } else {
       
       const bd_prod = cliente.db( BD_PRODUCTOS );
       const col_productos = bd_prod.collection( COLECCION_PRODUCTOS );
 
-      let opciones_busqueda = {};
-      Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
-
-      let query_busqueda = {};
-      Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE, { code: { $regex: regexp_barcode, $options: "$i" } });
+      // let opciones_busqueda = {};
+      // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
+      let opciones_busqueda = { ...opciones_busqueda, ...OPCIONES_BUSQUEDA_LIMITE_10};
+      
+      // let query_busqueda = {};
+      // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE, { code: { $regex: regexp_barcode, $options: "$i" } });
+      let query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, code: { $regex: regexp_barcode, $options: "$i" } };
 
       col_productos.findOne(query_busqueda,
 			    opciones_busqueda,
@@ -268,7 +274,8 @@ function api_get_facet_json(req, res, next) {
 
       if (err) {
 	console.log('database not found');
-	Object.assign(json_res, JSON_NOT_FOUND, { status_verbose: "database not found" });
+	// Object.assign(json_res, JSON_NOT_FOUND, { status_verbose: "database not found" });
+	json_res={ ...JSON_NOT_FOUND, status_verbose: "database not found" };
 	res.send(json_res);
       } else {
 	
@@ -317,11 +324,13 @@ function api_get_products_json(req, res, next) {
   let valor = req.params.valor;
   let exp_valor = facet.trim();
 
-  let opciones_busqueda = {};
-  Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
-
-  let query_busqueda = {'categories_tags': exp_valor};
-  Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE);
+  // let opciones_busqueda = {};
+  // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
+  let opciones_busqueda = { ...OPCIONES_BUSQUEDA_LIMITE_10 };
+  
+  // let query_busqueda = {'categories_tags': exp_valor};
+  // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE);
+  let query_busqueda = { 'categories_tags': exp_valor, ...FILTRO_BUSQUEDA_IS_COMPLETE };
   
   // - tipo de respuesta MIME: application/json
   //    res.append('Content-Type', 'application/json');
