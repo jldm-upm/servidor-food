@@ -31,20 +31,27 @@ const fs = require('fs');
 
 const parse_qs = require('./search_querystring.js');
 //console.log(parse_qs({}));
+
+const {
+  URL_MONGODB,
+  OPCIONES_MONGODB,
+
+  // nombre de la bd de productos OFF
+  BD_PRODUCTOS,
+  // nombre de la colección de productos
+  COLECCION_PRODUCTOS,
+
+  // parámetros de escuchador del servicio web
+  PUERTO_SERVIDOR,
+  INTERFAZ_SERVIDOR,
+
+  OPCIONES_BUSQUEDA_LIMITE_10,
+
+  FILTRO_BUSQUEDA_IS_COMPLETE,
+} = require('./configuracion.servidor.js');
 /* -------------------------------------------------------------------
-   -------           PARÁMETROS DE CONFIGURACIÓN               ------- 
+   -------           CONSTANTES DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
-// parámetros de conexión a la base de datos de productos
-const URL_MONGODB = "mongodb://localhost:27017/jldm";
-const OPCIONES_MONGODB = { poolSize: 10 };
-
-const BD_PRODUCTOS = 'jldm'; // nombre de la bd
-const COLECCION_PRODUCTOS = 'productos'; // nombre de la colección de productos
-
-// parámetros de escuchador del servicio web
-const PUERTO_SERVIDOR = 8080;
-const INTERFAZ_SERVIDOR = 'localhost';
-
 // Definiciones de algunos valores estáticos para el servico:
 const DIR_STATIC = 'static';
 const PATH_STATIC = `${__dirname}/${DIR_STATIC}`; // path de almacenamiento de ficheros estáticos
@@ -54,9 +61,6 @@ const JSON_NOT_FOUND = { status:0, status_verbose: "object not found" }; // JSON
 
 const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_templates/product.json`, 'utf8')); // JSON plantilla producto
 
-const OPCIONES_BUSQUEDA_LIMITE_10 = [{limit: 10}];
-
-const ARR_FILTRO_BUSQUEDA_IS_COMPLETE = [{complete: {$eq: 1}}, { complete: { $exists: true } }];
 /* -------------------------------------------------------------------
    -------               FUNCIONES AUXILIARES                  ------- 
    ------------------------------------------------------------------- */
@@ -138,7 +142,7 @@ function api_get_food_barcode_json(req, res, next) {
 
       // let opciones_busqueda = {};
       // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
-      let opciones_busqueda = { ...opciones_busqueda, ...OPCIONES_BUSQUEDA_LIMITE_10};
+      let opciones_busqueda = { ...OPCIONES_BUSQUEDA_LIMITE_10};
       
       // let query_busqueda = {};
       // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE, { code: { $regex: regexp_barcode, $options: "$i" } });
