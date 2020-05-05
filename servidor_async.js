@@ -126,11 +126,17 @@ async function api_get_food_barcode_json(req, res, next) {
     
     const res_busqueda = await buscar_regexp_barcode(regexp_barcode);
 
-    json_res =  {
-      'code': res_busqueda.code,
-      'product': componer_producto_json(res_busqueda),
-      'status': 1
-    };
+    // comprobar si se encontró un producto con ese código de barras:
+    if(res_busqueda && res_busqueda.hasOwnProperty(code)) {
+      json_res =  {
+	'code': res_busqueda.code,
+	'product': componer_producto_json(res_busqueda),
+	'status': 1
+      };
+    } else {
+      json_res = object_not_found_json(barcode, 'product');
+    }
+    
   } catch (error) {
     console.log(error);
     const error_msj = `Error en la búsqueda.\n${error}`;
@@ -459,4 +465,4 @@ curl http://localhost:${PUERTO_SERVIDOR}/api/v0/product/737628064502.json`);
 
 /*
 
-*/
+ */
