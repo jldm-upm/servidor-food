@@ -33,22 +33,17 @@ const parse_qs = require('./search_querystring.js');
 //console.log(parse_qs({}));
 
 const {
-  URL_MONGODB,
-  OPCIONES_MONGODB,
-
-  // nombre de la bd de productos OFF
-  BD_PRODUCTOS,
-  // nombre de la colección de productos
-  COLECCION_PRODUCTOS,
 
   // parámetros de escuchador del servicio web
   PUERTO_SERVIDOR,
   INTERFAZ_SERVIDOR,
 
-  OPCIONES_BUSQUEDA_LIMITE_10,
-
-  FILTRO_BUSQUEDA_IS_COMPLETE,
 } = require('./configuracion.servidor.js');
+
+const {
+  buscar_regexp_barcode
+} = require('./bd_productos.js');
+
 /* -------------------------------------------------------------------
    -------           CONSTANTES DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
@@ -119,62 +114,33 @@ function object_not_found_json(codigo, objeto) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-function api_get_food_barcode_json(req, res, next) {
+async function api_get_food_barcode_json(req, res, next) {
   console.log('api_get_food_barcode_json');
+
   let json_res = {};
-
-  let barcode = req.params.barcode; // en OpenFoodFacts los códigos (en 'code') son strings
-  let regexp_barcode = "^0*" + barcode.trim().replace(/^0+/,'') + "$";
-
-  // buscar el producto con el código correspondiente y devolver el resultado:
-  ClienteMongo.connect(URL_MONGODB, OPCIONES_MONGODB, function(err, cliente) {
-
-    if (err) {
-      //      next(err);
-      console.log('database not found');
-      //Object.assign(json_res, JSON_NOT_FOUND, { status_verbose: "database not found" });
-      json_res={ ...JSON_NOT_FOUD,  status_verbose: "database not found" };
-      res.send(json_res);
-    } else {
-      
-      const bd_prod = cliente.db( BD_PRODUCTOS );
-      const col_productos = bd_prod.collection( COLECCION_PRODUCTOS );
-
-      // let opciones_busqueda = {};
-      // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
-      let opciones_busqueda = { ...OPCIONES_BUSQUEDA_LIMITE_10};
-      
-      // let query_busqueda = {};
-      // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE, { code: { $regex: regexp_barcode, $options: "$i" } });
-      let query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, code: { $regex: regexp_barcode, $options: "$i" } };
-
-      col_productos.findOne(query_busqueda,
-			    opciones_busqueda,
-			    function (err2, producto) {
-			      
-			      // (enviar la respuesta como callback de la búsqueda de la BD):
-			      // - tipo de respuesta MIME: application/json
-			      //res.append('Content-Type', 'application/json');
-			      // - contenido de la respuesta:
-			      if (err2 || producto == null) {
-				console.log('object not found: ' + barcode);
-				json_res = object_not_found_json(barcode,'product');
-			      }
-			      else {
-				json_res['code'] = producto.code;
-				json_res['product'] = componer_producto_json(producto);
-				json_res['status'] = 1;
-				json_res['status_verbose'] = "product found";
-			      };
-			      res.send(json_res);
-			      
-			      return json_res;
-			      
-			    }); // find
-    } // err else
-    return cliente; // debería estar cerrado
-  }); // connect
   
+  try {
+    const barcode = req.params.barcode; // en OpenFoodFacts los códigos (en 'code') son strings
+    json_res['code'] = barcode;
+    const regexp_barcode = "^0*" + barcode.trim().replace(/^0+/,'') + "$";
+    
+    const res_busqueda = await buscar_regexp_barcode(regexp_barcode);
+
+    json_res =  {
+      'code': res_busqueda.code,
+      'product': componer_producto_json(res_busqueda),
+      'status': 1
+    };
+  } catch (error) {
+    console.log(error);
+    const error_msj = `Error en la búsqueda.\n${error}`;
+    console.log(error_msj);
+    json_res = {
+      'status': 1,
+      'status_verbose': error_msj,
+    };
+  }
+  res.send(json_res);
 }; // api_get_food_barcode_json
 
 // -------------------------------------------------------------------
@@ -486,4 +452,11 @@ app.listen(PUERTO_SERVIDOR, INTERFAZ_SERVIDOR, function() {
 
   // print a message when the server starts listening
   console.log(`Iniciando servidor en ${INTERFAZ_SERVIDOR}:${PUERTO_SERVIDOR}`);
+
+  console.log(`Probar con:\n
+curl http://localhost:${PUERTO_SERVIDOR}/api/v0/product/737628064502.json`);
 });
+
+/*
+
+*/
