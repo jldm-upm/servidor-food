@@ -331,7 +331,7 @@ function func_value(query,prop) {
 //  - query: un objeto con los pares de la querystring {'key':'value',...}
 // Devuelve:
 //  - array de objetos, cada uno un filtro de MongoDB.
-export default function query_search(query) {
+function query_search(query) {
   let res = [];
   for (let key in query) {
 
@@ -346,5 +346,5 @@ export default function query_search(query) {
   return res;
 }; // query_search
 
-//module.exports = query_search;
+module.exports = query_search;
 
