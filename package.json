@@ -16,6 +16,7 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "indium": "^5.0.0",
     "mocha": "^7.1.1"
   },
   "files": [

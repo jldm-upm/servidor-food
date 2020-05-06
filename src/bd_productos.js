@@ -7,7 +7,7 @@ const {
   // nombre de la colección de productos
   COLECCION_PRODUCTOS,
 
-  OPCIONES_BUSQUEDA_LIMITE_10,
+  PAGE_SIZE,
 
   FILTRO_BUSQUEDA_IS_COMPLETE,
 } = require('./configuracion.bd.js');
@@ -37,10 +37,25 @@ async function bd_get_valores_facets(facet) {
 
   const field = facet + "_tags";
   const field_count = field + "_n";
-  const result = await col_productos.distinct(field);
-
+  let result = await col_productos.distinct(field);
+  result = result.filter(val => !!val); // eliminar valores nulos
+  
   return result;
 }; // bd_get_valores_facets
 
+async function bd_buscar_codes(query,query_page_size=PAGE_SIZE,skip=0) {
+  console.log(`bd_buscar(${JSON.stringify(query)})`);
+  
+  const c = await MONGO.connect(URL_MONGODB);
+  const db = await c.db(BD_PRODUCTOS);
+  const col_productos = await db.collection(COLECCION_PRODUCTOS);
+
+  let result = await col_productos.find(query).limit(query_page_size).toArray();
+  result = result.filter(val => !!val); // eliminar valores nulos
+  
+  return result;
+}; // bd_buscar
+
 exports.bd_buscar_regexp_barcode = bd_buscar_regexp_barcode;
 exports.bd_get_valores_facets = bd_get_valores_facets;
+exports.bd_buscar_codes = bd_buscar_codes;

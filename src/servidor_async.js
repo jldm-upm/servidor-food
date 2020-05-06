@@ -44,6 +44,7 @@ const {
 const {
   bd_buscar_regexp_barcode,
   bd_get_valores_facets,
+  bd_buscar_codes,
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -292,11 +293,10 @@ async function api_get_facet_json(req, res, next) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-function api_get_products_json(req, res, next) {
+async function api_get_products_json(req, res, next) {
   console.log('api_get_products_json');
   
-  let json_res = {};
-  
+  let json_res = {};  
   
   let valor = req.params.valor;
   let exp_valor = facet.trim();
@@ -359,10 +359,37 @@ function api_get_products_json(req, res, next) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-function api_search_products_json(req, res, next) {
+async function api_search_products_json(req, res, next) {
   console.log('api_search_products_json');
 
-  return parse_qs(req.query);
+//  console.log(req.query);
+
+  let json_res = {};
+
+  try {
+    const page_size = req.query['page_size'];
+    const skip = req.query['skip'];
+    const mongoDB_query = { $and: parse_qs(req.query) };
+
+    const result = await bd_buscar_codes(mongoDB_query);
+
+//     res_cursor.forEach(val => {
+// //      console.log('        ' + JSON.stringify(val));
+//       result.push[result.length] = val;
+//     });
+    console.log('            ' + result.length);
+    if (result && (result.length > 0)) {
+      json_res = { status: 1, status_verbose: 'search found'};
+      json_res['products'] = result;
+      json_res['count'] = result.length;
+    } else {
+      json_res = object_not_found_json(mongoDB_query,'products');
+    }
+  } catch (error) {
+    json_res = error_json(error);
+  };
+
+  res.send(json_res);
 } // api_search_products_json
 
 /* -------------------------------------------------------------------
@@ -425,6 +452,7 @@ function configurar(aplicacion, clienteMongo) {
   // URL API de valores de "facets".
   aplicacion.get("/:facet.json", api_get_facet_json);
 
+  // URL API busqueda de un producto
   aplicacion.get("/cgi/search.pl", api_search_products_json);
   
   // Se devuelve un documento JSON si no se encuentra una ruta coincidente.

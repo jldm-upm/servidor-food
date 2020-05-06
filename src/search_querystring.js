@@ -14,6 +14,8 @@
 // *******************************************************************
 'use strict';
 
+const assert = require('assert');
+
 /* -------------------------------------------------------------------
    -------           PARÁMETROS DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
@@ -114,7 +116,11 @@ const nutricional_tipos = [
 // Devuelve:
 //   Una función que siempre devuelve el parámetro con el que se creó.
 function siempre(valor) {
-  return ( () => { return valor; } );
+  console.log(`search_querystring.js:siempre(${valor})`);
+  return ( () => {
+    console.log(`search_querystring.js:siempre(${valor}):()`);
+    return valor;
+  } );
 }; // siempre
 
 // Función auxiliar que devuelve una función que comprueba si un valor
@@ -125,8 +131,10 @@ function siempre(valor) {
 // Devuelve:
 //   Una función al que se le pasa un valor y comprueba si se encontraba en el array parámetro.
 function contiene(array) {
- return (val) => {
-   return (array.indexOf(val) >= 0);
+  console.log(`search_querystring.js:contiene(${array})`);
+  return (val) => {
+    console.log(`search_querystring.js:contiene(${array}):(${val})`);
+    return (array.indexOf(val) >= 0);
  };
 };
 
@@ -220,29 +228,40 @@ const QUERY_VALIDAS =
       ];
 
 function filtro_contains(tipo,op,val) {
+  console.log(`search_querystring.js:filtro_contains(${tipo},${op},${val})`);
   let res = {}; // nuevo objeto vacio
+  tipo = tipo + "_tags";
+
+  //  const rx_val = new RegExp(val,'i');
+  const rx_val = val;
+
   if (op === 'contains') {
-    res[tipo] = val;
+    res[tipo] = { $regex: rx_val, $options: 'i' };
   } else if ( op === 'does_not_contains' ) {
-    res[tipo] = { $nin: [val] };
+    res[tipo] = { $not: { $regex: rx_val, $options: 'i' } };
   };
-  // si no es 'contains'/'does_not_contains'
+  // si no es 'contains'/'does_not_contains': res = {}
+  
   return res;
 } // filtro_contains
 
 function filtro_comparar(tipo,op,val) {
+  console.log(`search_querystring.js:filtro_comparar(${tipo},${op},${val})`);
   let res = {};
 
   if (this['operadores'].indexOf(op) >= 0) {
     let op_symbol = Symbol(op);
-    res[tipo] = { op_symbol: val };
+    res[tipo] = {};
+    res[tipo][op_symbol] = val;
   };
 
   return res;
 } // filtro_comparar
 
 function gen_filtro_contiene(prop_array) {
+  console.log(`search_querystring.js:gen_filtro_contiene(${prop_array})`);
   return (tipo) => {
+    console.log(`search_querystring.js:gen_filtro_contiene(${prop_array}):${tipo}`);
     let res = {};
 
     if (tipo.startsWith('indifferent')) {
@@ -275,7 +294,7 @@ function gen_filtro_contiene(prop_array) {
 //     tag_contains_0=contains
 //     tag_0=cereals             // una palabra entera
 function func_operador(query,prop) {
-  console.log(`func_tagtype(query,${prop})`);
+  console.log(`search_querystring.js:func_tagtype(${query},${prop})`);
   let [_, grupo] = prop.split('_');
   // obtener el valor (tipo) del parámetro...
   let tipo = query[prop];
@@ -288,7 +307,7 @@ function func_operador(query,prop) {
   // por último obtener el valor del operando...
   let operando = query[this['operando_']+grupo];  
 
-  console.log(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}, operando2=${operando2}`);
+  console.log(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}`);
   
   let res = this['filtro'](tipo,operador,operando);
   
@@ -305,7 +324,7 @@ function func_operador(query,prop) {
 // Devuelve:
 //  - un objeto-filtro de MongoDB.
 function func_value(query,prop) {
-  console.log(`func_value(query,${prop})`);
+  console.log(`search_querystring.js:func_value(${query},${prop})`);
   let res = this['filtro'](tipo,operador,operando);
   
   console.log(`func_value = (${prop})=${res}`);
@@ -332,6 +351,7 @@ function func_value(query,prop) {
 // Devuelve:
 //  - array de objetos, cada uno un filtro de MongoDB.
 function query_search(query) {
+  console.log(`search_querystring.js:query_search(${query})`);
   let res = [];
   for (let key in query) {
 
@@ -340,7 +360,8 @@ function query_search(query) {
     });
     
 //    console.log(` ++ ${obj_procesar} o ${JSON.stringify(obj_procesar)}`);
-    if (obj_procesar) res.push(obj_procesar['func'](query,key));
+    if (obj_procesar)
+      res.push(obj_procesar['func'](query,key));
   }
 
   return res;
