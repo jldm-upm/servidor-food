@@ -27,4 +27,20 @@ async function buscar_regexp_barcode(regexp_barcode) {
   return result;
 }; // buscar_regexp_barcode
 
+async function get_valores_facets(facet) {
+  console.log('get_valores_facets');
+
+  const c = await MONGO.connect(URL_MONGODB);
+  const db = await c.db(BD_PRODUCTOS);
+
+  const col_productos = await db.collection(COLECCION_PRODUCTOS);
+
+  const field = facet + "_tags";
+  const field_count = field + "_n";
+  const result = await col_productos.distinct(field);
+
+  return result;
+}; // get_valores_facets
+
 exports.buscar_regexp_barcode = buscar_regexp_barcode;
+exports.get_valores_facets = get_valores_facets;

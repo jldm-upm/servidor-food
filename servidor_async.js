@@ -10,6 +10,8 @@
 // -------------------------------------------------------------------
 //   Historia: + 12 Dic 2019 - Primera Versión
 //             + 05 Mar 2020 - Añadir log estilo Apache mediante middleware 'morgan'
+//             + 03 May 2020 - Modularizar configuración del servidor
+//             + 05 May 2020 - Modularizar acceso a base de datos
 // *******************************************************************
 'use strict';
 /* -------------------------------------------------------------------
@@ -41,7 +43,8 @@ const {
 } = require('./configuracion.servidor.js');
 
 const {
-  buscar_regexp_barcode
+  buscar_regexp_barcode,
+  get_valores_facets,
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -96,7 +99,22 @@ function object_not_found_json(codigo, objeto) {
   return res;
 }; // object_not_found_json
 
-
+// -------------------------------------------------------------------
+// Función que devuelve un objeto JSON que corresponde un error.
+//
+// Parámetros:
+//  - error: objeto 'error' recogido como excepción
+// Devuelve:
+//  { status: 0, status_verbose: error}
+function error_json(error) {
+    console.log(error);
+    const error_msj = `Error.\n${error}`;
+    console.log(error_msj);
+    return {
+      'status': 1,
+      'status_verbose': error_msj,
+    };
+} // error_json
 /* -------------------------------------------------------------------
    -------                    FUNCIONES API                    ------- 
    ------------------------------------------------------------------- */
@@ -127,24 +145,19 @@ async function api_get_food_barcode_json(req, res, next) {
     const res_busqueda = await buscar_regexp_barcode(regexp_barcode);
 
     // comprobar si se encontró un producto con ese código de barras:
-    if(res_busqueda && res_busqueda.hasOwnProperty(code)) {
+    if(res_busqueda && res_busqueda.hasOwnProperty('code')) {
       json_res =  {
 	'code': res_busqueda.code,
 	'product': componer_producto_json(res_busqueda),
 	'status': 1
       };
     } else {
+      console.log(`product ${barcode} not found`);
       json_res = object_not_found_json(barcode, 'product');
     }
     
   } catch (error) {
-    console.log(error);
-    const error_msj = `Error en la búsqueda.\n${error}`;
-    console.log(error_msj);
-    json_res = {
-      'status': 1,
-      'status_verbose': error_msj,
-    };
+    json_res = error_json(error);
   }
   res.send(json_res);
 }; // api_get_food_barcode_json
@@ -163,7 +176,7 @@ async function api_get_food_barcode_json(req, res, next) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-function api_get_taxonomia_json(req, res, next) {
+async function api_get_taxonomia_json(req, res, next) {
   console.log('api_get_taxonomia_json');
   
   const arr_taxonomias = [
@@ -188,7 +201,7 @@ function api_get_taxonomia_json(req, res, next) {
   // - tipo de respuesta MIME: application/json
   //    res.append('Content-Type', 'application/json');
   // - contenido de la respuesta:
-  if (arr_taxonomias.indexOf(exp_taxonomia) >= 0) { // seguridad: sólo acceder a datos predefinidos
+  if (arr_taxonomias.includes(exp_taxonomia)) { // seguridad: sólo acceder a datos predefinidos
     json_path = `${exp_taxonomia}.json`;
     res.sendFile(path, {root: PATH_TAXONOMIES});
   } else {
@@ -211,7 +224,7 @@ function api_get_taxonomia_json(req, res, next) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-function api_get_facet_json(req, res, next) {
+async function api_get_facet_json(req, res, next) {
   console.log('api_get_facet_json');
   
   const arr_facets = [
@@ -237,7 +250,7 @@ function api_get_facet_json(req, res, next) {
     'traces'];
 
   let json_res = {};
-  
+  let result = {};
   
   let facet = req.params.facet;
   let exp_category = facet.trim();
@@ -245,35 +258,25 @@ function api_get_facet_json(req, res, next) {
   // - tipo de respuesta MIME: application/json
   //    res.append('Content-Type', 'application/json');
   // - contenido de la respuesta:
-  if (arr_facets.indexOf(exp_category) >= 0) { // seguridad: sólo acceder a datos predefinidos
-    ClienteMongo.connect(URL_MONGODB, OPCIONES_MONGODB, function(err, cliente) {
+  if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
+    try {
+      result = await get_valores_facets(facet);
 
-      if (err) {
-	console.log('database not found');
-	// Object.assign(json_res, JSON_NOT_FOUND, { status_verbose: "database not found" });
-	json_res={ ...JSON_NOT_FOUND, status_verbose: "database not found" };
-	res.send(json_res);
+      if (result && (result.length > 0)) {
+	json_res = { 'count': result.length, 'tags': result, 'status': 1};
       } else {
-	
-	const bd_prod = cliente.db( BD_PRODUCTOS );
-	const col_productos = bd_prod.collection( COLECCION_PRODUCTOS );
-
-	col_productos.distinct(exp_category  + "_tags", function (err2, facets_of) {
-	  if (err2) {
-	    console.log('facet not found');
-	    json.send(object_not_found_json('not found', 'facet'));
-	  } else {
-	    
-	    json_res['count'] = facets_of.length;
-	    json_res['tags'] = facets_of;
-	  }; // err2 else
-	});
-      }; // err else
-    }); 
+	console.log(`facet ${facet} not found`);
+	json_res = { 'count': 0, 'tags': null, 'status': 0 };
+      }
+    } catch(error) {
+      json_res = error_json(error);
+    };
   } else {
-    res.send(object_not_found_json(exp_category, 'facet'));
-  };
+    console.log(`facet ${facet} not found`);
+    json_res = object_not_found_json(facet,'facet');
+  }
 
+  res.send(json_res);
 }; // api_get_facet_json
 
 // -------------------------------------------------------------------
@@ -311,7 +314,7 @@ function api_get_products_json(req, res, next) {
   // - tipo de respuesta MIME: application/json
   //    res.append('Content-Type', 'application/json');
   // - contenido de la respuesta:
-  if (arr_facets.indexOf(exp_category) >= 0) { // seguridad: sólo acceder a datos predefinidos
+  if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
     ClienteMongo.connect(URL_MONGODB, OPCIONES_MONGODB, function(err, cliente) {
 
       if (err) {
