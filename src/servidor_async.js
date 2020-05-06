@@ -32,7 +32,6 @@ const morgan = require("morgan");
 const fs = require('fs');
 
 const parse_qs = require('./search_querystring.js');
-//console.log(parse_qs({}));
 
 const {
 
@@ -192,8 +191,7 @@ async function api_get_taxonomia_json(req, res, next) {
     'nutrient_levels',
     'states'];
 
-  let json_path = {};
-  
+  let json_path = '';
 
   let taxonomia = req.params.taxonomia;
   let exp_taxonomia = taxonomia.trim();
@@ -203,7 +201,7 @@ async function api_get_taxonomia_json(req, res, next) {
   // - contenido de la respuesta:
   if (arr_taxonomias.includes(exp_taxonomia)) { // seguridad: sólo acceder a datos predefinidos
     json_path = `${exp_taxonomia}.json`;
-    res.sendFile(path, {root: PATH_TAXONOMIES});
+    res.sendFile(json_path, {'root': PATH_TAXONOMIES});
   } else {
     res.send(object_not_found_json(exp_taxonomia, 'taxonomy'));
   }
@@ -433,7 +431,7 @@ function configurar(aplicacion, clienteMongo) {
   app.use(function(req, res, next){
     console.log('resource_not_found_json');
     res.set('Content-Type', 'application/json');  
-    res.status(404).send({ status: 404, url: req.url, description: "resource not found" });
+    res.status(404).send({ status: 0, url: req.url, status_verbose: "resource not found" });
   });
 
   return aplicacion;
@@ -455,7 +453,7 @@ app.listen(PUERTO_SERVIDOR, INTERFAZ_SERVIDOR, function() {
 
   // print a message when the server starts listening
   console.log(`Iniciando servidor en ${INTERFAZ_SERVIDOR}:${PUERTO_SERVIDOR}`);
-
+  console.log(`$DIR_STATIC=${PATH_STATIC}`)
   console.log(`Probar con:\n
 curl http://localhost:${PUERTO_SERVIDOR}/api/v0/product/737628064502.json`);
 });

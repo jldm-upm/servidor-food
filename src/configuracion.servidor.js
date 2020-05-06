@@ -3,21 +3,9 @@
    ------------------------------------------------------------------- */
 /*
 {
-  URL_MONGODB,
-  OPCIONES_MONGODB,
-
-  // nombre de la bd de productos OFF
-  BD_PRODUCTOS,
-  // nombre de la colección de productos
-  COLECCION_PRODUCTOS,
-
   // parámetros de escuchador del servicio web
   PUERTO_SERVIDOR,
   INTERFAZ_SERVIDOR,
-
-  OPCIONES_BUSQUEDA_LIMITE_10,
-
-  FILTRO_BUSQUEDA_IS_COMPLETE,
 }
 */
 

@@ -2,9 +2,10 @@
   "name": "servidor-food",
   "version": "1.0.0",
   "description": "Servidor API acceso a la BD open-food-facts",
-  "main": "servidor_async.js",
+  "main": "src/servidor_async.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "start": "node src/servidor_async.js"
   },
   "author": "José L. Domenech",
   "license": "AGPLv3",
@@ -16,5 +17,8 @@
   },
   "devDependencies": {
     "mocha": "^7.1.1"
-  }
+  },
+  "files": [
+    "src/*"
+  ]
 }

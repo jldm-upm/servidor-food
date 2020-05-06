@@ -17,7 +17,6 @@
 }
 */
 
-
 const BD_PRODUCTOS = 'jldm'; // nombre de la bd
 const COLECCION_PRODUCTOS = 'productos'; // nombre de la colección de productos
 
@@ -25,7 +24,7 @@ const COLECCION_PRODUCTOS = 'productos'; // nombre de la colección de productos
 const URL_MONGODB = 'mongodb://localhost:27017/';
 const OPCIONES_MONGODB = { poolSize: 10 };
 
-const OPCIONES_BUSQUEDA_LIMITE_10 = [{limit: 10}];
+const OPCIONES_BUSQUEDA_LIMITE_10 = [{ limit: 10 }];
 
 const FILTRO_BUSQUEDA_IS_COMPLETE = { complete: 1 };
 
