@@ -43,8 +43,8 @@ const {
 } = require('./configuracion.servidor.js');
 
 const {
-  buscar_regexp_barcode,
-  get_valores_facets,
+  bd_buscar_regexp_barcode,
+  bd_get_valores_facets,
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -111,7 +111,7 @@ function error_json(error) {
     const error_msj = `Error.\n${error}`;
     console.log(error_msj);
     return {
-      'status': 1,
+      'status': 0,
       'status_verbose': error_msj,
     };
 } // error_json
@@ -142,7 +142,7 @@ async function api_get_food_barcode_json(req, res, next) {
     json_res['code'] = barcode;
     const regexp_barcode = "^0*" + barcode.trim().replace(/^0+/,'') + "$";
     
-    const res_busqueda = await buscar_regexp_barcode(regexp_barcode);
+    const res_busqueda = await bd_buscar_regexp_barcode(regexp_barcode);
 
     // comprobar si se encontró un producto con ese código de barras:
     if(res_busqueda && res_busqueda.hasOwnProperty('code')) {
@@ -260,7 +260,7 @@ async function api_get_facet_json(req, res, next) {
   // - contenido de la respuesta:
   if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
     try {
-      result = await get_valores_facets(facet);
+      result = await bd_get_valores_facets(facet);
 
       if (result && (result.length > 0)) {
 	json_res = { 'count': result.length, 'tags': result, 'status': 1};
@@ -345,12 +345,6 @@ function api_get_products_json(req, res, next) {
   };
 
 }; // api_get_products_json
-
-function parse_check_search_syntax(query) {
-  console.log('parse_check_search_syntax: ' + query);
-
-  
-}; // parse_check_search_syntax
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
