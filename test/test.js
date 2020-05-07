@@ -42,4 +42,11 @@ describe('Acceso al servidor', function() {
             assert(Object.keys(res.data).length > 0, `Se debe devolver un array con contenido y se devolvió ${Object.keys(res.data).length}`);
         });
     });
+    describe('"/:facet.json", api_get_facet_json', function() {
+        it('debe devolver los facets (valores que contiene una propiedad introducidos por el usuario) que contiene la propiedad indicada', async function() {
+            const res = await httpGet(`${URL_BASE}/ingredients.json`);
+            console.log(res);
+            assert(res.data.count > 0, `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
+        });
+    });
 });
