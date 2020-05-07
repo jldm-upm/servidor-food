@@ -35,16 +35,16 @@ const parse_qs = require('./search_querystring.js');
 
 const {
 
-  // parámetros de escuchador del servicio web
-  PUERTO_SERVIDOR,
-  INTERFAZ_SERVIDOR,
+    // parámetros de escuchador del servicio web
+    PUERTO_SERVIDOR,
+    INTERFAZ_SERVIDOR,
 
 } = require('./configuracion.servidor.js');
 
 const {
-  bd_buscar_regexp_barcode,
-  bd_get_valores_facets,
-  bd_buscar_codes,
+    bd_buscar_regexp_barcode,
+    bd_get_valores_facets,
+    bd_buscar_codes,
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -55,7 +55,7 @@ const DIR_STATIC = 'static';
 const PATH_STATIC = `${__dirname}/${DIR_STATIC}`; // path de almacenamiento de ficheros estáticos
 const PATH_TAXONOMIES = `${PATH_STATIC}/tax`;
 
-const JSON_NOT_FOUND = { status:0, status_verbose: "object not found" }; // JSON objeto no encontrado
+const JSON_NOT_FOUND = { status: 0, status_verbose: "object not found" }; // JSON objeto no encontrado
 
 const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_templates/product.json`, 'utf8')); // JSON plantilla producto
 
@@ -71,12 +71,12 @@ const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_te
 // Devuelve:
 //  - objeto JSON con la respuesta del servidor.
 function componer_producto_json(producto_json) {
-  console.log('componer_producto_json');
-  // let json_res = {};
+    console.log('componer_producto_json');
+    // let json_res = {};
 
-  //return Object.assign(json_res, JSON_PRODUCT_TEMPLATE, producto_json);
-  let json_res = { ...JSON_PRODUCT_TEMPLATE, ...producto_json};
-  return json_res;
+    //return Object.assign(json_res, JSON_PRODUCT_TEMPLATE, producto_json);
+    let json_res = { ...JSON_PRODUCT_TEMPLATE, ...producto_json };
+    return json_res;
 }; // componer_producto_json
 
 // -------------------------------------------------------------------
@@ -88,15 +88,15 @@ function componer_producto_json(producto_json) {
 // Devuelve:
 //  json_not_found + {'objeto': codigo}
 function object_not_found_json(codigo, objeto) {
-  console.log('object_not_found_json');
-  //let res = {};
-  //Object.assign(res, JSON_NOT_FOUND);
-  let res = { ...JSON_NOT_FOUND};
-  
-  res[objeto]=codigo;
-  res['status_verbose'] = `${objeto} not found`;
-  
-  return res;
+    console.log('object_not_found_json');
+    //let res = {};
+    //Object.assign(res, JSON_NOT_FOUND);
+    let res = { ...JSON_NOT_FOUND };
+
+    res[objeto] = codigo;
+    res['status_verbose'] = `${objeto} not found`;
+
+    return res;
 }; // object_not_found_json
 
 // -------------------------------------------------------------------
@@ -111,8 +111,8 @@ function error_json(error) {
     const error_msj = `Error.\n${error}`;
     console.log(error_msj);
     return {
-      'status': 0,
-      'status_verbose': error_msj,
+        'status': 0,
+        'status_verbose': error_msj,
     };
 } // error_json
 /* -------------------------------------------------------------------
@@ -133,33 +133,33 @@ function error_json(error) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_food_barcode_json(req, res, next) {
-  console.log('api_get_food_barcode_json');
+    console.log('api_get_food_barcode_json');
 
-  let json_res = {};
-  
-  try {
-    const barcode = req.params.barcode; // en OpenFoodFacts los códigos (en 'code') son strings
-    json_res['code'] = barcode;
-    const regexp_barcode = "^0*" + barcode.trim().replace(/^0+/,'') + "$";
-    
-    const res_busqueda = await bd_buscar_regexp_barcode(regexp_barcode);
+    let json_res = {};
 
-    // comprobar si se encontró un producto con ese código de barras:
-    if(res_busqueda && res_busqueda.hasOwnProperty('code')) {
-      json_res =  {
-	'code': res_busqueda.code,
-	'product': componer_producto_json(res_busqueda),
-	'status': 1
-      };
-    } else {
-      console.log(`product ${barcode} not found`);
-      json_res = object_not_found_json(barcode, 'product');
+    try {
+        const barcode = req.params.barcode; // en OpenFoodFacts los códigos (en 'code') son strings
+        json_res['code'] = barcode;
+        const regexp_barcode = "^0*" + barcode.trim().replace(/^0+/, '') + "$";
+
+        const res_busqueda = await bd_buscar_regexp_barcode(regexp_barcode);
+
+        // comprobar si se encontró un producto con ese código de barras:
+        if (res_busqueda && res_busqueda.hasOwnProperty('code')) {
+            json_res = {
+                'code': res_busqueda.code,
+                'product': componer_producto_json(res_busqueda),
+                'status': 1
+            };
+        } else {
+            console.log(`product ${barcode} not found`);
+            json_res = object_not_found_json(barcode, 'product');
+        }
+
+    } catch (error) {
+        json_res = error_json(error);
     }
-    
-  } catch (error) {
-    json_res = error_json(error);
-  }
-  res.send(json_res);
+    res.send(json_res);
 }; // api_get_food_barcode_json
 
 // -------------------------------------------------------------------
@@ -177,36 +177,36 @@ async function api_get_food_barcode_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_taxonomia_json(req, res, next) {
-  console.log('api_get_taxonomia_json');
-  
-  const arr_taxonomias = [
-    'additives',
-    'additives_classes',
-    'allergens',
-    'brands',
-    'countries',
-    'ingredients',
-    'ingredients_analysis',
-    'languages',
-    'nova_groups',
-    'nutrient_levels',
-    'states'];
+    console.log('api_get_taxonomia_json');
 
-  let json_path = '';
+    const arr_taxonomias = [
+        'additives',
+        'additives_classes',
+        'allergens',
+        'brands',
+        'countries',
+        'ingredients',
+        'ingredients_analysis',
+        'languages',
+        'nova_groups',
+        'nutrient_levels',
+        'states'];
 
-  let taxonomia = req.params.taxonomia;
-  let exp_taxonomia = taxonomia.trim();
+    let json_path = '';
 
-  // - tipo de respuesta MIME: application/json
-  //    res.append('Content-Type', 'application/json');
-  // - contenido de la respuesta:
-  if (arr_taxonomias.includes(exp_taxonomia)) { // seguridad: sólo acceder a datos predefinidos
-    json_path = `${exp_taxonomia}.json`;
-    res.sendFile(json_path, {'root': PATH_TAXONOMIES});
-  } else {
-    res.send(object_not_found_json(exp_taxonomia, 'taxonomy'));
-  }
-  
+    let taxonomia = req.params.taxonomia;
+    let exp_taxonomia = taxonomia.trim();
+
+    // - tipo de respuesta MIME: application/json
+    //    res.append('Content-Type', 'application/json');
+    // - contenido de la respuesta:
+    if (arr_taxonomias.includes(exp_taxonomia)) { // seguridad: sólo acceder a datos predefinidos
+        json_path = `${exp_taxonomia}.json`;
+        res.sendFile(json_path, { 'root': PATH_TAXONOMIES });
+    } else {
+        res.send(object_not_found_json(exp_taxonomia, 'taxonomy'));
+    }
+
 }; // api_get_taxonomia_json
 
 // -------------------------------------------------------------------
@@ -224,58 +224,58 @@ async function api_get_taxonomia_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_facet_json(req, res, next) {
-  console.log('api_get_facet_json');
-  
-  const arr_facets = [
-    'additives',
-    'allergens',
-    'brands',
-    'categories',
-    'countries',
-    'contributors',
-    'code',
-    'entry_dates',
-    'ingredients',
-    'label',
-    'languages',
-    'nutrition_grade',
-    'packaging',
-    'packaging_codes',
-    'purchase_places',
-    'photographer',
-    'informer',
-    'states',
-    'stores',
-    'traces'];
+    console.log('api_get_facet_json');
 
-  let json_res = {};
-  let result = {};
-  
-  let facet = req.params.facet;
-  let exp_category = facet.trim();
+    const arr_facets = [
+        'additives',
+        'allergens',
+        'brands',
+        'categories',
+        'countries',
+        'contributors',
+        'code',
+        'entry_dates',
+        'ingredients',
+        'label',
+        'languages',
+        'nutrition_grade',
+        'packaging',
+        'packaging_codes',
+        'purchase_places',
+        'photographer',
+        'informer',
+        'states',
+        'stores',
+        'traces'];
 
-  // - tipo de respuesta MIME: application/json
-  //    res.append('Content-Type', 'application/json');
-  // - contenido de la respuesta:
-  if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
-    try {
-      result = await bd_get_valores_facets(facet);
+    let json_res = {};
+    let result = {};
 
-      if (result && (result.length > 0)) {
-	json_res = { 'count': result.length, 'tags': result, 'status': 1};
-      } else {
-	console.log(`facet ${facet} not found`);
-	json_res = { 'count': 0, 'tags': null, 'status': 0 };
-      }
-    } catch(error) {
-      json_res = error_json(error);
-    };
-  } else {
-    console.log(`facet ${facet} not found`);
-    json_res = object_not_found_json(facet,'facet');
-  }
+    let facet = req.params.facet;
+    let exp_category = facet.trim();
 
-  res.send(json_res);
+    // - tipo de respuesta MIME: application/json
+    //    res.append('Content-Type', 'application/json');
+    // - contenido de la respuesta:
+    if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
+        try {
+            result = await bd_get_valores_facets(facet);
+
+            if (result && (result.length > 0)) {
+                json_res = { 'count': result.length, 'tags': result, 'status': 1 };
+            } else {
+                console.log(`facet ${facet} not found`);
+                json_res = { 'count': 0, 'tags': null, 'status': 0 };
+            }
+        } catch (error) {
+            json_res = error_json(error);
+        };
+    } else {
+        console.log(`facet ${facet} not found`);
+        json_res = object_not_found_json(facet, 'facet');
+    }
+
+    res.send(json_res);
 }; // api_get_facet_json
 
 // -------------------------------------------------------------------
@@ -294,53 +294,53 @@ async function api_get_facet_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_products_json(req, res, next) {
-  console.log('api_get_products_json');
-  
-  let json_res = {};  
-  
-  let valor = req.params.valor;
-  let exp_valor = facet.trim();
+    console.log('api_get_products_json');
 
-  // let opciones_busqueda = {};
-  // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
-  let opciones_busqueda = { ...OPCIONES_BUSQUEDA_LIMITE_10 };
-  
-  // let query_busqueda = {'categories_tags': exp_valor};
-  // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE);
-  let query_busqueda = { 'categories_tags': exp_valor, ...FILTRO_BUSQUEDA_IS_COMPLETE };
-  
-  // - tipo de respuesta MIME: application/json
-  //    res.append('Content-Type', 'application/json');
-  // - contenido de la respuesta:
-  if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
-    ClienteMongo.connect(URL_MONGODB, OPCIONES_MONGODB, function(err, cliente) {
+    let json_res = {};
 
-      if (err) {
-	console.log(`exp_category = ${exp_category}`);
-	res.send(object_not_found_json(exp_category, 'facet'));
+    let valor = req.params.valor;
+    let exp_valor = facet.trim();
 
-      } else {
-	
-	const bd_prod = cliente.db( BD_PRODUCTOS );
-	const col_productos = bd_prod.collection( COLECCION_PRODUCTOS );
+    // let opciones_busqueda = {};
+    // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
+    let opciones_busqueda = { ...OPCIONES_BUSQUEDA_LIMITE_10 };
 
-	col_productos.find(query_busqueda,
-			   opciones_busqueda,
-			   function (err, productos) {
-			     if (err2) {
-			       console.log('products not found');
-			       send.res(object_not_found('products',JSON.stringify(req.query)));
-			     } else {			    
-			       send.res(productos);
-			     } // else err2
-			   });
-      } 
+    // let query_busqueda = {'categories_tags': exp_valor};
+    // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE);
+    let query_busqueda = { 'categories_tags': exp_valor, ...FILTRO_BUSQUEDA_IS_COMPLETE };
 
-    }); 
-  } else {
-    console.log(`exp_category = ${exp_category}`);
-    res.send(object_not_found_json(exp_category, 'facet'));
-  };
+    // - tipo de respuesta MIME: application/json
+    //    res.append('Content-Type', 'application/json');
+    // - contenido de la respuesta:
+    if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
+        ClienteMongo.connect(URL_MONGODB, OPCIONES_MONGODB, function(err, cliente) {
+
+            if (err) {
+                console.log(`exp_category = ${exp_category}`);
+                res.send(object_not_found_json(exp_category, 'facet'));
+
+            } else {
+
+                const bd_prod = cliente.db(BD_PRODUCTOS);
+                const col_productos = bd_prod.collection(COLECCION_PRODUCTOS);
+
+                col_productos.find(query_busqueda,
+                    opciones_busqueda,
+                    function(err, productos) {
+                        if (err2) {
+                            console.log('products not found');
+                            send.res(object_not_found('products', JSON.stringify(req.query)));
+                        } else {
+                            send.res(productos);
+                        } // else err2
+                    });
+            }
+
+        });
+    } else {
+        console.log(`exp_category = ${exp_category}`);
+        res.send(object_not_found_json(exp_category, 'facet'));
+    };
 
 }; // api_get_products_json
 
@@ -360,36 +360,36 @@ async function api_get_products_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_search_products_json(req, res, next) {
-  console.log('api_search_products_json');
+    console.log('api_search_products_json');
 
-//  console.log(req.query);
+    //  console.log(req.query);
 
-  let json_res = {};
+    let json_res = {};
 
-  try {
-    const page_size = req.query['page_size'];
-    const skip = req.query['skip'];
-    const mongoDB_query = { $and: parse_qs(req.query) };
+    try {
+        const page_size = req.query['page_size'];
+        const skip = req.query['skip'];
+        const mongoDB_query = { $and: parse_qs(req.query) };
 
-    const result = await bd_buscar_codes(mongoDB_query);
+        const result = await bd_buscar_codes(mongoDB_query);
 
-//     res_cursor.forEach(val => {
-// //      console.log('        ' + JSON.stringify(val));
-//       result.push[result.length] = val;
-//     });
-    console.log('            ' + result.length);
-    if (result && (result.length > 0)) {
-      json_res = { status: 1, status_verbose: 'search found'};
-      json_res['products'] = result;
-      json_res['count'] = result.length;
-    } else {
-      json_res = object_not_found_json(mongoDB_query,'products');
-    }
-  } catch (error) {
-    json_res = error_json(error);
-  };
+        //     res_cursor.forEach(val => {
+        // //      console.log('        ' + JSON.stringify(val));
+        //       result.push[result.length] = val;
+        //     });
+        console.log('            ' + result.length);
+        if (result && (result.length > 0)) {
+            json_res = { status: 1, status_verbose: 'search found' };
+            json_res['products'] = result;
+            json_res['count'] = result.length;
+        } else {
+            json_res = object_not_found_json(mongoDB_query, 'products');
+        }
+    } catch (error) {
+        json_res = error_json(error);
+    };
 
-  res.send(json_res);
+    res.send(json_res);
 } // api_search_products_json
 
 /* -------------------------------------------------------------------
@@ -403,66 +403,66 @@ async function api_search_products_json(req, res, next) {
 //  - aplicacion - aplicación `express' a la que se añadirá la configuración de la API
 //
 // Devuelve: La propia aplicación configurada.
-function configurar(aplicacion, clienteMongo) {  
-  console.log('configurar');
-  // -------------------
-  // --- MIDDLEWARE: ---
-  // -------------------
+function configurar(aplicacion, clienteMongo) {
+    console.log('configurar');
+    // -------------------
+    // --- MIDDLEWARE: ---
+    // -------------------
 
-  // middleware de log usando la librería morgan (formato Apache)
-  aplicacion.use(morgan('combined'));
-  
-  // // Ejemplo para instalar un middleware:
-  // aplicacion.use(function (req, res, next) {
-  //   console.log('Time:', Date.now());
-  //   req.nowTime = Date.now();
-  //   next();
-  // });
+    // middleware de log usando la librería morgan (formato Apache)
+    aplicacion.use(morgan('combined'));
 
-  // todas las respuestas deberían ser documentos JSON
-  aplicacion.use((req,res,next) => {
-    console.log('poner_json');
-    res.set('Content-Type','application/json');
-    next();
-  });
-  
-  // middleware para la 'autentificación'...
-  aplicacion.use((req,res,next) => {
-    console.log('authentication');
-    if (!(req.get('User-Agent') === 'TFG Sostenibilidad v1.0')) {
-      //res.status(401).send({status: 401, url: req.url, description: "no authorized"});
-      next();
-    } else {
-      next();
-    }
-  });
+    // // Ejemplo para instalar un middleware:
+    // aplicacion.use(function (req, res, next) {
+    //   console.log('Time:', Date.now());
+    //   req.nowTime = Date.now();
+    //   next();
+    // });
 
-  // --------------
-  // --- RUTAS: ---
-  // --------------
-  
-  // URL API de información de producto através de su `barcode'.
-  aplicacion.get("/api/v0/product/:barcode.json", api_get_food_barcode_json);
+    // todas las respuestas deberían ser documentos JSON
+    aplicacion.use((req, res, next) => {
+        console.log('poner_json');
+        res.set('Content-Type', 'application/json');
+        next();
+    });
 
-  // URL API de valores de "taxonomías".
-  aplicacion.get("/data/taxonomies/:taxonomia.json", api_get_taxonomia_json);
-  // otra forma (creo que peor por que tiene menos comprobaciones) de hacerlo:
-  //  aplicacion.use("/data/taxonomies", express.static(`${PATH_ESTATICO}/tax`));
+    // middleware para la 'autentificación'...
+    aplicacion.use((req, res, next) => {
+        console.log('authentication');
+        if (!(req.get('User-Agent') === 'TFG Sostenibilidad v1.0')) {
+            //res.status(401).send({status: 401, url: req.url, description: "no authorized"});
+            next();
+        } else {
+            next();
+        }
+    });
 
-  // URL API de valores de "facets".
-  aplicacion.get("/:facet.json", api_get_facet_json);
+    // --------------
+    // --- RUTAS: ---
+    // --------------
 
-  // URL API busqueda de un producto
-  aplicacion.get("/cgi/search.pl", api_search_products_json);
-  
-  // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
-  app.use(function(req, res, next){
-    console.log('resource_not_found_json');
-    res.set('Content-Type', 'application/json');  
-    res.status(404).send({ status: 0, url: req.url, status_verbose: "resource not found" });
-  });
+    // URL API de información de producto através de su `barcode'.
+    aplicacion.get("/api/v0/product/:barcode.json", api_get_food_barcode_json);
 
-  return aplicacion;
+    // URL API de valores de "taxonomías".
+    aplicacion.get("/data/taxonomies/:taxonomia.json", api_get_taxonomia_json);
+    // otra forma (creo que peor por que tiene menos comprobaciones) de hacerlo:
+    //  aplicacion.use("/data/taxonomies", express.static(`${PATH_ESTATICO}/tax`));
+
+    // URL API de valores de "facets".
+    aplicacion.get("/:facet.json", api_get_facet_json);
+
+    // URL API busqueda de un producto
+    aplicacion.get("/cgi/search.pl", api_search_products_json);
+
+    // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
+    app.use(function(req, res, next) {
+        console.log('resource_not_found_json');
+        res.set('Content-Type', 'application/json');
+        res.status(404).send({ status: 0, url: req.url, status_verbose: "resource not found" });
+    });
+
+    return aplicacion;
 }; // configurar
 
 /* -------------------------------------------------------------------
@@ -474,18 +474,21 @@ const app = express();
    -------                        MAIN                         ------- 
    ------------------------------------------------------------------- */
 // Iniciar el servidor
-app.listen(PUERTO_SERVIDOR, INTERFAZ_SERVIDOR, function() {  
-  console.log("Configuarando servidor...");
+function start() {
+    app.listen(PUERTO_SERVIDOR, INTERFAZ_SERVIDOR, function() {
+        console.log("Configuarando servidor...");
 
-  configurar(app, ClienteMongo);
+        configurar(app, ClienteMongo);
 
-  // print a message when the server starts listening
-  console.log(`Iniciando servidor en ${INTERFAZ_SERVIDOR}:${PUERTO_SERVIDOR}`);
-  console.log(`$DIR_STATIC=${PATH_STATIC}`)
-  console.log(`Probar con:\n
-curl http://localhost:${PUERTO_SERVIDOR}/api/v0/product/737628064502.json`);
-});
+        // print a message when the server starts listening
+        console.log(`Iniciando servidor en ${INTERFAZ_SERVIDOR}:${PUERTO_SERVIDOR}`);
+        console.log(`$DIR_STATIC=${PATH_STATIC}`);
+        console.log(`\nProbar con:\n
+curl -vv http://localhost:${PUERTO_SERVIDOR}/api/v0/product/737628064502.json\n`);
+    });
+}
 
+module.exports.start = start;
 /*
 
  */
