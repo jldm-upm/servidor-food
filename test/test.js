@@ -11,6 +11,7 @@ const SERVIDOR = 'localhost';
 const PUERTO = 8080;
 const URL_BASE = `http://${SERVIDOR}:${PUERTO}`;
 
+const TIEMPO_RAZONABLE_DE_RESPUESTA_MS = 5000;
 
 function httpGet(url) {
     return new Promise(function(resolve, reject) {
@@ -30,12 +31,14 @@ function httpGet(url) {
 
 describe('Acceso al servidor', function() {
     describe('"/api/v0/product/:barcode.json", api_get_food_barcode_json', function() {
+        this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
         it('debe encontrar el producto con código de barras 737628064502', async function() {
             const res = await httpGet(`${URL_BASE}/api/v0/product/737628064502.json`);
             assert.match(res.data.code, /737628064502/, `El código del producto devuelto ${res.data.code} debería coincidir con /737628064502/`);
         });
     });
     describe('"/data/taxonomies/:taxonomia.json", api_get_taxonomia_json', function() {
+        this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
         it('debe devolver un objecto con un número de taxonomias', async function() {
             const res = await httpGet(`${URL_BASE}/data/taxonomies/additives.json`);
 
@@ -43,6 +46,7 @@ describe('Acceso al servidor', function() {
         });
     });
     describe('"/:facet.json", api_get_facet_json', function() {
+        this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
         it('debe devolver los facets (valores que contiene una propiedad introducidos por el usuario) que contiene la propiedad indicada', async function() {
             const res = await httpGet(`${URL_BASE}/ingredients.json`);
             console.log(res);

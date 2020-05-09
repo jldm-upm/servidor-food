@@ -42,8 +42,9 @@ const {
 } = require('./configuracion.servidor.js');
 
 const {
-    bd_buscar_regexp_barcode,
+    bd_buscar_regexp_barcode_product,
     bd_get_valores_facets,
+    bd_buscar_category_products,
     bd_buscar_codes,
 } = require('./bd_productos.js');
 
@@ -142,7 +143,7 @@ async function api_get_food_barcode_json(req, res, next) {
         json_res['code'] = barcode;
         const regexp_barcode = "^0*" + barcode.trim().replace(/^0+/, '') + "$";
 
-        const res_busqueda = await bd_buscar_regexp_barcode(regexp_barcode);
+        const res_busqueda = await bd_buscar_regexp_barcode_product(regexp_barcode);
 
         // comprobar si se encontró un producto con ese código de barras:
         if (res_busqueda && res_busqueda.hasOwnProperty('code')) {
@@ -226,54 +227,26 @@ async function api_get_taxonomia_json(req, res, next) {
 async function api_get_facet_json(req, res, next) {
     console.log('api_get_facet_json');
 
-    const arr_facets = [
-        'additives',
-        'allergens',
-        'brands',
-        'categories',
-        'countries',
-        'contributors',
-        'code',
-        'entry_dates',
-        'ingredients',
-        'label',
-        'languages',
-        'nutrition_grade',
-        'packaging',
-        'packaging_codes',
-        'purchase_places',
-        'photographer',
-        'informer',
-        'states',
-        'stores',
-        'traces'];
-
     let json_res = {};
     let result = {};
 
     let facet = req.params.facet;
     let exp_category = facet.trim();
+    try {
+        const page_size = req.query['page_size'];
+        const skip = req.query['skip'];
 
-    // - tipo de respuesta MIME: application/json
-    //    res.append('Content-Type', 'application/json');
-    // - contenido de la respuesta:
-    if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
-        try {
-            result = await bd_get_valores_facets(facet);
+        result = await bd_get_valores_facets(facet, page_size, skip);
 
-            if (result && (result.length > 0)) {
-                json_res = { 'count': result.length, 'tags': result, 'status': 1 };
-            } else {
-                console.log(`facet ${facet} not found`);
-                json_res = { 'count': 0, 'tags': null, 'status': 0 };
-            }
-        } catch (error) {
-            json_res = error_json(error);
-        };
-    } else {
-        console.log(`facet ${facet} not found`);
-        json_res = object_not_found_json(facet, 'facet');
-    }
+        if (result && (result.length > 0)) {
+            json_res = { 'count': result.length, 'tags': result, 'status': 1 };
+        } else {
+            console.log(`facet ${facet} not found`);
+            json_res = { 'count': 0, 'tags': null, 'status': 0 };
+        }
+    } catch (error) {
+        json_res = error_json(error);
+    };
 
     res.send(json_res);
 }; // api_get_facet_json
@@ -293,56 +266,32 @@ async function api_get_facet_json(req, res, next) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-async function api_get_products_json(req, res, next) {
-    console.log('api_get_products_json');
+async function api_get_categiry_products_json(req, res, next) {
+    console.log('api_get_categiry_products_json');
 
     let json_res = {};
 
-    let valor = req.params.valor;
-    let exp_valor = facet.trim();
+    let category = req.params.category;
+    let exp_category = category.trim();
 
-    // let opciones_busqueda = {};
-    // Object.assign(opciones_busqueda, OPCIONES_BUSQUEDA_LIMITE_10);
-    let opciones_busqueda = { ...OPCIONES_BUSQUEDA_LIMITE_10 };
+    try {
+        const page_size = req.query['page_size'];
+        const skip = req.query['skip'];
 
-    // let query_busqueda = {'categories_tags': exp_valor};
-    // Object.assign(query_busqueda, FILTRO_BUSQUEDA_IS_COMPLETE);
-    let query_busqueda = { 'categories_tags': exp_valor, ...FILTRO_BUSQUEDA_IS_COMPLETE };
+        let result = await bd_buscar_category_products(exp_category, skip, page_size);
 
-    // - tipo de respuesta MIME: application/json
-    //    res.append('Content-Type', 'application/json');
-    // - contenido de la respuesta:
-    if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
-        ClienteMongo.connect(URL_MONGODB, OPCIONES_MONGODB, function(err, cliente) {
+        if (result && (result.length > 0)) {
+            json_res = { 'count': result.length, 'products': result, 'status': 1 };
+        } else {
+            console.log(`Not products in category ${exp_category} not found`);
+            json_res = { 'count': 0, 'tags': null, 'status': 0 };
+        }
 
-            if (err) {
-                console.log(`exp_category = ${exp_category}`);
-                res.send(object_not_found_json(exp_category, 'facet'));
-
-            } else {
-
-                const bd_prod = cliente.db(BD_PRODUCTOS);
-                const col_productos = bd_prod.collection(COLECCION_PRODUCTOS);
-
-                col_productos.find(query_busqueda,
-                    opciones_busqueda,
-                    function(err, productos) {
-                        if (err2) {
-                            console.log('products not found');
-                            send.res(object_not_found('products', JSON.stringify(req.query)));
-                        } else {
-                            send.res(productos);
-                        } // else err2
-                    });
-            }
-
-        });
-    } else {
-        console.log(`exp_category = ${exp_category}`);
-        res.send(object_not_found_json(exp_category, 'facet'));
+    } catch (err) {
+        json_res = error_json(err);
     };
 
-}; // api_get_products_json
+}; // api_get_category_products_json
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
@@ -371,7 +320,7 @@ async function api_search_products_json(req, res, next) {
         const skip = req.query['skip'];
         const mongoDB_query = { $and: parse_qs(req.query) };
 
-        const result = await bd_buscar_codes(mongoDB_query);
+        const result = await bd_buscar_codes(mongoDB_query, page_size, skip);
 
         //     res_cursor.forEach(val => {
         // //      console.log('        ' + JSON.stringify(val));
