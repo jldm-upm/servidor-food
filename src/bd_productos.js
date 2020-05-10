@@ -1,3 +1,17 @@
+// *******************************************************************
+// Fichero:     bd_productos.js
+// -------------------------------------------------------------------
+// Proyecto:     
+// Autor:       José L. Domenech
+// Descripción:
+//              Funciones asincronas de acceso a la base de datos.
+//
+//              Usadas en el mapeo de un función de la API json con
+//              una consulta a la base de datos.
+//
+// -------------------------------------------------------------------
+//   Historia: + 05 May 2020 - Primera Versión
+// *******************************************************************
 const {
     URL_MONGODB,
     OPCIONES_MONGODB,
