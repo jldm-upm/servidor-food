@@ -12,6 +12,10 @@
 // -------------------------------------------------------------------
 //   Historia: + 05 May 2020 - Primera Versión
 // *******************************************************************
+'use strict';
+
+const wlog = require('./configuracion.logger.js');
+
 const {
     URL_MONGODB,
     OPCIONES_MONGODB,
@@ -51,7 +55,7 @@ const arr_facets = [
     'traces'];
 
 async function bd_buscar_regexp_barcode_product(regexp_barcode) {
-    console.log(`bd_buscar_regexp_barcode_product(${regexp_barcode})`);
+    wlog.silly(`bd_buscar_regexp_barcode_product(${regexp_barcode})`);
     const c = await MONGO.connect(URL_MONGODB);
     const db = await c.db(BD_PRODUCTOS);
 
@@ -64,7 +68,7 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode) {
 }; // bd_buscar_regexp_barcode_product
 
 async function bd_get_valores_facets(facet, skip = 0, page_size = PAGE_SIZE) {
-    console.log(`bd_get_valores_facets(${facet},${skip},${page_size})`);
+    wlog.silly(`bd_get_valores_facets(${facet},${skip},${page_size})`);
 
     let result = [];
 
@@ -85,7 +89,7 @@ async function bd_get_valores_facets(facet, skip = 0, page_size = PAGE_SIZE) {
     // 2 - con agregaciones:
     // let query = [{ $group: {} }];
     // query[0]['$group']['id_'] = field;
-    // console.log(query);
+    // wlog.silly(query);
     // result = await col_productos.aggregate(query).skip(skip).limit(page_size);
     // result = result.filter(val => !!val); // eliminar valores nulos
 
@@ -93,7 +97,7 @@ async function bd_get_valores_facets(facet, skip = 0, page_size = PAGE_SIZE) {
 }; // bd_get_valores_facets
 
 async function bd_buscar_category_products(facet, category, skip = 0, page_size = PAGE_SIZE) {
-    console.log(`bd_buscar_category_products(${facet},${category},${skip},${page_size})`);
+    wlog.silly(`bd_buscar_category_products(${facet},${category},${skip},${page_size})`);
 
     let result = null;
 
@@ -105,7 +109,7 @@ async function bd_buscar_category_products(facet, category, skip = 0, page_size 
         const facet_tags = facet + '_tags';
 
         const query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, facet_tags: category };
-        console.log(`QUERY: ${query_busqueda}`);
+        wlog.silly(`QUERY: ${query_busqueda}`);
         result = await col_productos.find(query_busqueda).skip(skip).limit(page_size);
 
         result = result.filter(val => !!val); // eliminar valores nulos
@@ -117,7 +121,7 @@ async function bd_buscar_category_products(facet, category, skip = 0, page_size 
 } // bd_buscar_category_products
 
 async function bd_buscar_codes(query, skip = 0, page_size = PAGE_SIZE) {
-    console.log(`bd_buscar(${JSON.stringify(query)}, ${skip}, ${page_size}})`);
+    wlog.silly(`bd_buscar(${JSON.stringify(query)}, ${skip}, ${page_size}})`);
 
     const c = await MONGO.connect(URL_MONGODB);
     const db = await c.db(BD_PRODUCTOS);

@@ -16,6 +16,8 @@
 
 const assert = require('assert');
 
+const wlog = require('./configuracion.logger.js');
+
 /* -------------------------------------------------------------------
    -------           PARÁMETROS DE CONFIGURACIÓN               ------- 
    ------------------------------------------------------------------- */
@@ -116,9 +118,9 @@ const nutricional_tipos = [
 // Devuelve:
 //   Una función que siempre devuelve el parámetro con el que se creó.
 function siempre(valor) {
-    console.log(`search_querystring.js:siempre(${valor})`);
+    wlog.silly(`search_querystring.js:siempre(${valor})`);
     return (() => {
-        console.log(`search_querystring.js:siempre(${valor}):()`);
+        wlog.silly(`search_querystring.js:siempre(${valor}):()`);
         return valor;
     });
 }; // siempre
@@ -131,9 +133,9 @@ function siempre(valor) {
 // Devuelve:
 //   Una función al que se le pasa un valor y comprueba si se encontraba en el array parámetro.
 function contiene(array) {
-    console.log(`search_querystring.js:contiene(${array})`);
+    wlog.silly(`search_querystring.js:contiene(${array})`);
     return (val) => {
-        console.log(`search_querystring.js:contiene(${array}):(${val})`);
+        wlog.silly(`search_querystring.js:contiene(${array}):(${val})`);
         return (array.indexOf(val) >= 0);
     };
 };
@@ -228,7 +230,7 @@ const QUERY_VALIDAS =
     ];
 
 function filtro_contains(tipo, op, val) {
-    console.log(`search_querystring.js:filtro_contains(${tipo},${op},${val})`);
+    wlog.silly(`search_querystring.js:filtro_contains(${tipo},${op},${val})`);
     let res = {}; // nuevo objeto vacio
     tipo = tipo + "_tags";
 
@@ -246,7 +248,7 @@ function filtro_contains(tipo, op, val) {
 } // filtro_contains
 
 function filtro_comparar(tipo, op, val) {
-    console.log(`search_querystring.js:filtro_comparar(${tipo},${op},${val})`);
+    wlog.silly(`search_querystring.js:filtro_comparar(${tipo},${op},${val})`);
     let res = {};
 
     if (this['operadores'].indexOf(op) >= 0) {
@@ -259,9 +261,9 @@ function filtro_comparar(tipo, op, val) {
 } // filtro_comparar
 
 function gen_filtro_contiene(prop_array) {
-    console.log(`search_querystring.js:gen_filtro_contiene(${prop_array})`);
+    wlog.silly(`search_querystring.js:gen_filtro_contiene(${prop_array})`);
     return (tipo) => {
-        console.log(`search_querystring.js:gen_filtro_contiene(${prop_array}):${tipo}`);
+        wlog.silly(`search_querystring.js:gen_filtro_contiene(${prop_array}):${tipo}`);
         let res = {};
 
         if (tipo.startsWith('indifferent')) {
@@ -294,7 +296,7 @@ function gen_filtro_contiene(prop_array) {
 //     tag_contains_0=contains
 //     tag_0=cereals             // una palabra entera
 function func_operador(query, prop) {
-    console.log(`search_querystring.js:func_tagtype(${query},${prop})`);
+    wlog.silly(`search_querystring.js:func_tagtype(${query},${prop})`);
     let [_, grupo] = prop.split('_');
     // obtener el valor (tipo) del parámetro...
     let tipo = query[prop];
@@ -307,11 +309,11 @@ function func_operador(query, prop) {
     // por último obtener el valor del operando...
     let operando = query[this['operando_'] + grupo];
 
-    console.log(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}`);
+    wlog.silly(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}`);
 
     let res = this['filtro'](tipo, operador, operando);
 
-    console.log(`func_tagtype = (${prop})=${res}`);
+    wlog.silly(`func_tagtype = (${prop})=${res}`);
     return res;
 };
 
@@ -324,10 +326,10 @@ function func_operador(query, prop) {
 // Devuelve:
 //  - un objeto-filtro de MongoDB.
 function func_value(query, prop) {
-    console.log(`search_querystring.js:func_value(${query},${prop})`);
+    wlog.silly(`search_querystring.js:func_value(${query},${prop})`);
     let res = this['filtro'](tipo, operador, operando);
 
-    console.log(`func_value = (${prop})=${res}`);
+    wlog.silly(`func_value = (${prop})=${res}`);
     return res;
 }
 
@@ -351,7 +353,7 @@ function func_value(query, prop) {
 // Devuelve:
 //  - array de objetos, cada uno un filtro de MongoDB.
 function query_search(query) {
-    console.log(`search_querystring.js:query_search(${query})`);
+    wlog.silly(`search_querystring.js:query_search(${query})`);
     let res = [];
     for (let key in query) {
 
@@ -359,7 +361,7 @@ function query_search(query) {
             return key.match(obj['nombre_rx']);
         });
 
-        //    console.log(` ++ ${obj_procesar} o ${JSON.stringify(obj_procesar)}`);
+        //    wlog.silly(` ++ ${obj_procesar} o ${JSON.stringify(obj_procesar)}`);
         if (obj_procesar)
             res.push(obj_procesar['func'](query, key));
     }

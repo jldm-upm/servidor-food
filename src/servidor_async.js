@@ -14,6 +14,9 @@
 //             + 05 May 2020 - Modularizar acceso a base de datos
 // *******************************************************************
 'use strict';
+
+const wlog = require('./configuracion.logger.js');
+
 /* -------------------------------------------------------------------
    -------                   IMPORTACIONES                     ------- 
    ------------------------------------------------------------------- */
@@ -72,7 +75,7 @@ const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_te
 // Devuelve:
 //  - objeto JSON con la respuesta del servidor.
 function componer_producto_json(producto_json) {
-    console.log('componer_producto_json');
+    wlog.silly('componer_producto_json');
     // let json_res = {};
 
     //return Object.assign(json_res, JSON_PRODUCT_TEMPLATE, producto_json);
@@ -89,7 +92,7 @@ function componer_producto_json(producto_json) {
 // Devuelve:
 //  json_not_found + {'objeto': codigo}
 function object_not_found_json(codigo, objeto) {
-    console.log('object_not_found_json');
+    wlog.silly('object_not_found_json');
     //let res = {};
     //Object.assign(res, JSON_NOT_FOUND);
     let res = { ...JSON_NOT_FOUND };
@@ -108,9 +111,9 @@ function object_not_found_json(codigo, objeto) {
 // Devuelve:
 //  { status: 0, status_verbose: error}
 function error_json(error) {
-    console.log(error);
+    wlog.silly(error);
     const error_msj = `Error.\n${error}`;
-    console.log(error_msj);
+    wlog.silly(error_msj);
     return {
         'status': 0,
         'status_verbose': error_msj,
@@ -134,7 +137,7 @@ function error_json(error) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_food_barcode_json(req, res, next) {
-    console.log('api_get_food_barcode_json');
+    wlog.silly('api_get_food_barcode_json');
 
     let json_res = {};
 
@@ -153,12 +156,13 @@ async function api_get_food_barcode_json(req, res, next) {
                 'status': 1
             };
         } else {
-            console.log(`product ${barcode} not found`);
+            wlog.info(`product ${barcode} not found`);
             json_res = object_not_found_json(barcode, 'product');
         }
 
     } catch (error) {
         json_res = error_json(error);
+        wlog.error(json_res);
     }
     res.send(json_res);
 }; // api_get_food_barcode_json
@@ -178,7 +182,7 @@ async function api_get_food_barcode_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_taxonomia_json(req, res, next) {
-    console.log('api_get_taxonomia_json');
+    wlog.silly('api_get_taxonomia_json');
 
     const arr_taxonomias = [
         'additives',
@@ -205,6 +209,7 @@ async function api_get_taxonomia_json(req, res, next) {
         json_path = `${exp_taxonomia}.json`;
         res.sendFile(json_path, { 'root': PATH_TAXONOMIES });
     } else {
+        wlog.error(object_not_found_json(exp_taxonomia, 'taxonomy'));
         res.send(object_not_found_json(exp_taxonomia, 'taxonomy'));
     }
 
@@ -225,7 +230,7 @@ async function api_get_taxonomia_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_facet_json(req, res, next) {
-    console.log('api_get_facet_json');
+    wlog.silly('api_get_facet_json');
 
     let json_res = {};
     let result = {};
@@ -241,11 +246,12 @@ async function api_get_facet_json(req, res, next) {
         if (result && (result.length > 0)) {
             json_res = { 'count': result.length, 'tags': result, 'status': 1 };
         } else {
-            console.log(`facet ${facet} not found`);
+            wlog.info(`facet ${facet} not found`);
             json_res = { 'count': 0, 'tags': null, 'status': 0 };
         }
     } catch (error) {
         json_res = error_json(error);
+        wlog.error(json_res);
     };
 
     res.send(json_res);
@@ -267,7 +273,7 @@ async function api_get_facet_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_get_category_products_json(req, res, next) {
-    console.log('api_get_category_products_json');
+    wlog.silly('api_get_category_products_json');
 
     let json_res = {};
 
@@ -286,12 +292,13 @@ async function api_get_category_products_json(req, res, next) {
         if (result && (result.length > 0)) {
             json_res = { 'count': result.length, 'products': result, 'status': 1, 'skip': skip, 'page_size': page_size };
         } else {
-            console.log(`Not products in category ${exp_category} for facet ${facet} found`);
+            wlog.info(`Not products in category ${exp_category} for facet ${facet} found`);
             json_res = { 'count': 0, 'tags': null, 'status': 0, 'skip': skip, 'page_size': page_size };
         }
 
     } catch (err) {
         json_res = error_json(err);
+        wlog.error(json_res);
     };
 
 }; // api_get_category_products_json
@@ -312,9 +319,9 @@ async function api_get_category_products_json(req, res, next) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function api_search_products_json(req, res, next) {
-    console.log('api_search_products_json');
+    wlog.silly('api_search_products_json');
 
-    //  console.log(req.query);
+    //  wlog.silly(req.query);
 
     let json_res = {};
 
@@ -326,19 +333,21 @@ async function api_search_products_json(req, res, next) {
         const result = await bd_buscar_codes(mongoDB_query, page_size, skip);
 
         //     res_cursor.forEach(val => {
-        // //      console.log('        ' + JSON.stringify(val));
+        // //      wlog.silly('        ' + JSON.stringify(val));
         //       result.push[result.length] = val;
         //     });
-        console.log('            ' + result.length);
+        wlog.silly('            ' + result.length);
         if (result && (result.length > 0)) {
             json_res = { status: 1, status_verbose: 'search found' };
             json_res['products'] = result;
             json_res['count'] = result.length;
         } else {
             json_res = object_not_found_json(mongoDB_query, 'products');
+            wlog.info(json_res);
         }
     } catch (error) {
         json_res = error_json(error);
+        wlog.error(json_res);
     };
 
     res.send(json_res);
@@ -356,7 +365,7 @@ async function api_search_products_json(req, res, next) {
 //
 // Devuelve: La propia aplicación configurada.
 function configurar(aplicacion, clienteMongo) {
-    console.log('configurar');
+    wlog.silly('configurar');
     // -------------------
     // --- MIDDLEWARE: ---
     // -------------------
@@ -366,21 +375,21 @@ function configurar(aplicacion, clienteMongo) {
 
     // // Ejemplo para instalar un middleware:
     // aplicacion.use(function (req, res, next) {
-    //   console.log('Time:', Date.now());
+    //   wlog.silly('Time:', Date.now());
     //   req.nowTime = Date.now();
     //   next();
     // });
 
     // todas las respuestas deberían ser documentos JSON
     aplicacion.use((req, res, next) => {
-        console.log('poner_json');
+        wlog.silly('poner_json');
         res.set('Content-Type', 'application/json');
         next();
     });
 
     // middleware para la 'autentificación'...
     aplicacion.use((req, res, next) => {
-        console.log('authentication');
+        wlog.silly('authentication');
         if (!(req.get('User-Agent') === 'TFG Sostenibilidad v1.0')) {
             //res.status(401).send({status: 401, url: req.url, description: "no authorized"});
             next();
@@ -412,7 +421,7 @@ function configurar(aplicacion, clienteMongo) {
 
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {
-        console.log('resource_not_found_json');
+        wlog.silly('resource_not_found_json');
         res.set('Content-Type', 'application/json');
         res.status(404).send({ status: 0, url: req.url, status_verbose: "resource not found" });
     });
