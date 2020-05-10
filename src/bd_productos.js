@@ -24,7 +24,7 @@ const arr_facets = [
     'code',
     'entry_dates',
     'ingredients',
-    'label',
+    'labels',
     'languages',
     'nutrition_grade',
     'packaging',
@@ -50,38 +50,49 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode) {
 }; // bd_buscar_regexp_barcode_product
 
 async function bd_get_valores_facets(facet, skip = 0, page_size = PAGE_SIZE) {
-    console.log('bd_get_valores_facets(${facet},${skip},${page_size})');
+    console.log(`bd_get_valores_facets(${facet},${skip},${page_size})`);
+
+    let result = [];
+
+    if (!arr_facets.includes(facet)) {
+        return result;
+    };
 
     const c = await MONGO.connect(URL_MONGODB);
     const db = await c.db(BD_PRODUCTOS);
 
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
-    const field = "$" + facet + "_tags";
-    const field_count = field + "_n";
-    //let result = await col_productos.distinct(field);
-    let query = [{ $group: {} }];
-    query[0]['$group']['id_'] = field;
-    console.log(query);
-    let result = await col_productos.aggregate(query).skip(skip).limit(page_size);
-    result = result.filter(val => !!val); // eliminar valores nulos
+    const field = facet + "_tags";
+
+    // 1 - con disting:
+    result = await col_productos.distinct(field, FILTRO_BUSQUEDA_IS_COMPLETE);
+
+    // 2 - con agregaciones:
+    // let query = [{ $group: {} }];
+    // query[0]['$group']['id_'] = field;
+    // console.log(query);
+    // result = await col_productos.aggregate(query).skip(skip).limit(page_size);
+    // result = result.filter(val => !!val); // eliminar valores nulos
 
     return result;
 }; // bd_get_valores_facets
 
-async function bd_buscar_category_products(category, skip = 0, page_size = PAGE_SIZE) {
-    console.log(`bd_buscar_category_products(${category},${skip},${page_size})`);
+async function bd_buscar_category_products(facet, category, skip = 0, page_size = PAGE_SIZE) {
+    console.log(`bd_buscar_category_products(${facet},${category},${skip},${page_size})`);
 
     let result = null;
 
-    if (arr_facets.includes(exp_category)) { // seguridad: sólo acceder a datos predefinidos
+    if (arr_facets.includes(category)) { // seguridad: sólo acceder a datos predefinidos
         const c = await MONGO.connect(URL_MONGODB);
         const db = await c.db(BD_PRODUCTOS);
         const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
-        const query_busqueda = { 'categories_tags': exp_valor, ...FILTRO_BUSQUEDA_IS_COMPLETE };
+        const facet_tags = facet + '_tags';
 
-        result = await col_productos.find(query_busqueda);
+        const query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, facet_tags: category };
+        console.log(`QUERY: ${query_busqueda}`);
+        result = await col_productos.find(query_busqueda).skip(skip).limit(page_size);
 
         result = result.filter(val => !!val); // eliminar valores nulos
     } else {

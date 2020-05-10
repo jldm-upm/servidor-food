@@ -266,10 +266,13 @@ async function api_get_facet_json(req, res, next) {
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-async function api_get_categiry_products_json(req, res, next) {
-    console.log('api_get_categiry_products_json');
+async function api_get_category_products_json(req, res, next) {
+    console.log('api_get_category_products_json');
 
     let json_res = {};
+
+    let facet = req.params.facet;
+    let exp_facet = facet.trim();
 
     let category = req.params.category;
     let exp_category = category.trim();
@@ -278,13 +281,13 @@ async function api_get_categiry_products_json(req, res, next) {
         const page_size = req.query['page_size'];
         const skip = req.query['skip'];
 
-        let result = await bd_buscar_category_products(exp_category, skip, page_size);
+        let result = await bd_buscar_category_products(exp_facet, exp_category, skip, page_size);
 
         if (result && (result.length > 0)) {
-            json_res = { 'count': result.length, 'products': result, 'status': 1 };
+            json_res = { 'count': result.length, 'products': result, 'status': 1, 'skip': skip, 'page_size': page_size };
         } else {
-            console.log(`Not products in category ${exp_category} not found`);
-            json_res = { 'count': 0, 'tags': null, 'status': 0 };
+            console.log(`Not products in category ${exp_category} for facet ${facet} found`);
+            json_res = { 'count': 0, 'tags': null, 'status': 0, 'skip': skip, 'page_size': page_size };
         }
 
     } catch (err) {
@@ -400,6 +403,9 @@ function configurar(aplicacion, clienteMongo) {
 
     // URL API de valores de "facets".
     aplicacion.get("/:facet.json", api_get_facet_json);
+
+    // URL API para obtener productos que pertenecen a una categoria de un facet
+    aplicacion.get("/:facet/:category.json", api_get_category_products_json);
 
     // URL API busqueda de un producto
     aplicacion.get("/cgi/search.pl", api_search_products_json);
