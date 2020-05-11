@@ -1,11 +1,23 @@
+const LOG_FILE = 'logfile.log';
+
 const winston = require('winston');
+const { format } = require('logform');
+
+const alignedWithColorsAndTime = format.combine(
+    format.colorize(),
+    format.timestamp(),
+    // format.align(),
+    format.printf(info => `[${info.timestamp}] ${info.level} - - ${info.message}`)
+);
+
 const wlog = winston.createLogger({
     level: 'silly',
-    // format: winston.format.json(),
-    format: winston.format.cli(),
+    // format: format.json(),
+    // format: winston.format.cli(),
+    format: alignedWithColorsAndTime,
     transports: [
-        new winston.transports.Console()
-        // new winston.transports.File({ filename: 'logfile.log' })
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: LOG_FILE })
     ]
 });
 

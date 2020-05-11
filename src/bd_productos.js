@@ -32,6 +32,12 @@ const {
 
 const MONGO = require('mongodb').MongoClient;
 
+const OPCIONES_DEFECTO = {
+    skip: 0,
+    page_size: PAGE_SIZE,
+    lang: 'en'
+};
+
 const arr_facets = [
     'additives',
     'allergens',
@@ -54,7 +60,7 @@ const arr_facets = [
     'stores',
     'traces'];
 
-async function bd_buscar_regexp_barcode_product(regexp_barcode) {
+async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIONES_DEFECTO) {
     wlog.silly(`bd_buscar_regexp_barcode_product(${regexp_barcode})`);
     const c = await MONGO.connect(URL_MONGODB);
     const db = await c.db(BD_PRODUCTOS);
@@ -67,12 +73,14 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode) {
     return result;
 }; // bd_buscar_regexp_barcode_product
 
-async function bd_get_valores_facets(facet, skip = 0, page_size = PAGE_SIZE) {
-    wlog.silly(`bd_get_valores_facets(${facet},${skip},${page_size})`);
+async function bd_get_valores_facets(facet, opciones = OPCIONES_DEFECTO) {
+    wlog.silly(`bd_get_valores_facets(${facet},${JSON.stringify(opciones)})`);
+
+    opciones = { ...OPCIONES_DEFECTO, ...opciones };
 
     let result = [];
 
-    if (!arr_facets.includes(facet)) {
+    if (!(arr_facets.includes(facet))) {
         return result;
     };
 
@@ -96,21 +104,26 @@ async function bd_get_valores_facets(facet, skip = 0, page_size = PAGE_SIZE) {
     return result;
 }; // bd_get_valores_facets
 
-async function bd_buscar_category_products(facet, category, skip = 0, page_size = PAGE_SIZE) {
-    wlog.silly(`bd_buscar_category_products(${facet},${category},${skip},${page_size})`);
+async function bd_buscar_category_products(facet, category, opciones = OPCIONES_DEFECTO) {
+    wlog.silly(`bd_buscar_category_products(${facet},${category},${JSON.stringify(opciones)})`);
+
+    opciones = { ...OPCIONES_DEFECTO, ...opciones };
 
     let result = null;
 
-    if (arr_facets.includes(category)) { // seguridad: sólo acceder a datos predefinidos
+    if (arr_facets.includes(facet)) { // seguridad: sólo acceder a datos predefinidos
         const c = await MONGO.connect(URL_MONGODB);
         const db = await c.db(BD_PRODUCTOS);
         const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
         const facet_tags = facet + '_tags';
+        const valor = opciones.lang + ":" + category;
 
-        const query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, facet_tags: category };
+        let query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE };
+        query_busqueda[facet_tags] = valor;
+        wlog.silly(JSON.stringify(query_busqueda));
         wlog.silly(`QUERY: ${query_busqueda}`);
-        result = await col_productos.find(query_busqueda).skip(skip).limit(page_size);
+        result = await col_productos.find(query_busqueda).skip(opciones.skip).limit(opciones.page_size).toArray();
 
         result = result.filter(val => !!val); // eliminar valores nulos
     } else {
@@ -120,14 +133,16 @@ async function bd_buscar_category_products(facet, category, skip = 0, page_size 
     return result;
 } // bd_buscar_category_products
 
-async function bd_buscar_codes(query, skip = 0, page_size = PAGE_SIZE) {
-    wlog.silly(`bd_buscar(${JSON.stringify(query)}, ${skip}, ${page_size}})`);
+async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
+    wlog.silly(`bd_buscar(${JSON.stringify(query)}, ${JSON.stringify(opciones)}})`);
+
+    opciones = { ...OPCIONES_DEFECTO, ...opciones };
 
     const c = await MONGO.connect(URL_MONGODB);
     const db = await c.db(BD_PRODUCTOS);
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
-    let result = await col_productos.find(query).skip(skip).limit(page_size).toArray();
+    let result = await col_productos.find(query).skip(opciones.skip).limit(opciones.page_size).toArray();
     result = result.filter(val => !!val); // eliminar valores nulos
 
     return result;

@@ -111,14 +111,45 @@ function object_not_found_json(codigo, objeto) {
 // Devuelve:
 //  { status: 0, status_verbose: error}
 function error_json(error) {
-    wlog.silly(error);
-    const error_msj = `Error.\n${error}`;
-    wlog.silly(error_msj);
+    wlog.error(`error_json(${error})`);
+    const error_msj = `Error.\n${JSON.stringify(error)}`;
+    wlog.error(error_msj);
     return {
         'status': 0,
         'status_verbose': error_msj,
     };
 } // error_json
+
+// función auxiliar para determinar si un objeto tiene una propiedad
+function has(object, key) {
+    wlog.silly(`has(${object},${key})`);
+
+    return object ? hasOwnProperty.call(object, key) : false;
+}; // has
+
+
+function componer_opciones_url_query(query) {
+    wlog.silly(`componer_opciones_url_query(${query})`);
+
+    let result = {};
+
+    // try {
+    if (has(query, 'page_size')) {
+        result['page_size'] = query['page_size'];
+    }
+    if (has(query, 'skip')) {
+        result['skip'] = query['skip'];
+    }
+    if (has(query, 'lang')) {
+        result['lang'] = query['lang'];
+    }
+    // } catch (error) {
+    //     wlog.error(`Error al acceder a los datos de la query: ${error}`);
+    // }
+
+    return result;
+} // componer_opciones_url_query
+
 /* -------------------------------------------------------------------
    -------                    FUNCIONES API                    ------- 
    ------------------------------------------------------------------- */
@@ -238,10 +269,9 @@ async function api_get_facet_json(req, res, next) {
     let facet = req.params.facet;
     let exp_category = facet.trim();
     try {
-        const page_size = req.query['page_size'];
-        const skip = req.query['skip'];
+        const opciones = componer_opciones_url_query(req.query);
 
-        result = await bd_get_valores_facets(facet, page_size, skip);
+        result = await bd_get_valores_facets(facet, opciones);
 
         if (result && (result.length > 0)) {
             json_res = { 'count': result.length, 'tags': result, 'status': 1 };
@@ -284,23 +314,24 @@ async function api_get_category_products_json(req, res, next) {
     let exp_category = category.trim();
 
     try {
-        const page_size = req.query['page_size'];
-        const skip = req.query['skip'];
+        const opciones = componer_opciones_url_query(req.query);
 
-        let result = await bd_buscar_category_products(exp_facet, exp_category, skip, page_size);
+        let result = await bd_buscar_category_products(exp_facet, exp_category, opciones);
 
         if (result && (result.length > 0)) {
-            json_res = { 'count': result.length, 'products': result, 'status': 1, 'skip': skip, 'page_size': page_size };
+            json_res['count'] = result.length;
+            json_res['products'] = result;
+            json_res['status'] = 1;
+            json_res['opciones'] = opciones;
         } else {
             wlog.info(`Not products in category ${exp_category} for facet ${facet} found`);
-            json_res = { 'count': 0, 'tags': null, 'status': 0, 'skip': skip, 'page_size': page_size };
+            json_res = { 'count': 0, 'tags': null, 'status': 0, 'opciones': opciones };
         }
-
     } catch (err) {
         json_res = error_json(err);
         wlog.error(json_res);
     };
-
+    res.send(json_res);
 }; // api_get_category_products_json
 
 // -------------------------------------------------------------------
@@ -326,11 +357,10 @@ async function api_search_products_json(req, res, next) {
     let json_res = {};
 
     try {
-        const page_size = req.query['page_size'];
-        const skip = req.query['skip'];
+        const opciones = componer_opciones_url_query(req.query);
         const mongoDB_query = { $and: parse_qs(req.query) };
 
-        const result = await bd_buscar_codes(mongoDB_query, page_size, skip);
+        const result = await bd_buscar_codes(mongoDB_query, opciones);
 
         //     res_cursor.forEach(val => {
         // //      wlog.silly('        ' + JSON.stringify(val));
@@ -339,8 +369,10 @@ async function api_search_products_json(req, res, next) {
         wlog.silly('            ' + result.length);
         if (result && (result.length > 0)) {
             json_res = { status: 1, status_verbose: 'search found' };
-            json_res['products'] = result;
             json_res['count'] = result.length;
+            json_res['products'] = result;
+            json_res['status'] = 1;
+            json_res['opciones'] = opciones;
         } else {
             json_res = object_not_found_json(mongoDB_query, 'products');
             wlog.info(json_res);
@@ -371,7 +403,8 @@ function configurar(aplicacion, clienteMongo) {
     // -------------------
 
     // middleware de log usando la librería morgan (formato Apache)
-    aplicacion.use(morgan('combined'));
+    const morgan_fmt = "[:date[iso]] access - HTTP/:http-version :method :url - :remote-addr [:status :response-time ms]";
+    aplicacion.use(morgan(morgan_fmt));
 
     // // Ejemplo para instalar un middleware:
     // aplicacion.use(function (req, res, next) {
