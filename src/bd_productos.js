@@ -35,10 +35,11 @@ const MONGO = require('mongodb').MongoClient;
 const OPCIONES_DEFECTO = {
     skip: 0,
     page_size: PAGE_SIZE,
-    lang: 'en'
+    lang: 'en',
+    sort_by: {}
 };
 
-const arr_facets = [
+const arr_categories_pl = [
     'additives',
     'allergens',
     'brands',
@@ -60,6 +61,28 @@ const arr_facets = [
     'stores',
     'traces'];
 
+const arr_categories_sl = [
+    'additive',
+    'allergen',
+    'brand',
+    'category',
+    'country',
+    'contributor',
+    'code',
+    'entry_date',
+    'ingredient',
+    'label',
+    'language',
+    'nutrition_grade',
+    'packaging',
+    'packaging_code',
+    'purchase_place',
+    'photographer',
+    'informer',
+    'state',
+    'store',
+    'trace'];
+
 async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIONES_DEFECTO) {
     wlog.silly(`bd_buscar_regexp_barcode_product(${regexp_barcode})`);
     const c = await MONGO.connect(URL_MONGODB);
@@ -68,7 +91,8 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
     const query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, code: { $regex: regexp_barcode, $options: "$i" } };
-    const result = await col_productos.findOne(query_busqueda);
+
+    const result = await col_productos.findOne(query_busqueda); //.sort(opciones.sort_by);
 
     return result;
 }; // bd_buscar_regexp_barcode_product
@@ -80,7 +104,7 @@ async function bd_get_valores_facets(facet, opciones = OPCIONES_DEFECTO) {
 
     let result = [];
 
-    if (!(arr_facets.includes(facet))) {
+    if (!(arr_categories_pl.includes(facet))) {
         return result;
     };
 
@@ -104,26 +128,26 @@ async function bd_get_valores_facets(facet, opciones = OPCIONES_DEFECTO) {
     return result;
 }; // bd_get_valores_facets
 
-async function bd_buscar_category_products(facet, category, opciones = OPCIONES_DEFECTO) {
-    wlog.silly(`bd_buscar_category_products(${facet},${category},${JSON.stringify(opciones)})`);
+async function bd_buscar_category_products(category, facet, opciones = OPCIONES_DEFECTO) {
+    wlog.silly(`bd_buscar_category_products(${category},${facet},${JSON.stringify(opciones)})`);
 
     opciones = { ...OPCIONES_DEFECTO, ...opciones };
 
     let result = null;
 
-    if (arr_facets.includes(facet)) { // seguridad: sólo acceder a datos predefinidos
+    if (arr_categories_sl.includes(category)) { // seguridad: sólo acceder a datos predefinidos
         const c = await MONGO.connect(URL_MONGODB);
         const db = await c.db(BD_PRODUCTOS);
         const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
-        const facet_tags = facet + '_tags';
-        const valor = opciones.lang + ":" + category;
+        const facet_tags = arr_categories_pl[arr_categories_sl.indexOf(category)] + '_tags';
+        const valor = opciones.lang + ":" + facet;
 
         let query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE };
         query_busqueda[facet_tags] = valor;
         wlog.silly(JSON.stringify(query_busqueda));
-        wlog.silly(`QUERY: ${query_busqueda}`);
-        result = await col_productos.find(query_busqueda).skip(opciones.skip).limit(opciones.page_size).toArray();
+        wlog.silly(`QUERY: ${JSON.stringify(query_busqueda)}`);
+        result = await col_productos.find(query_busqueda).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
 
         result = result.filter(val => !!val); // eliminar valores nulos
     } else {
@@ -142,7 +166,7 @@ async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
     const db = await c.db(BD_PRODUCTOS);
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
-    let result = await col_productos.find(query).skip(opciones.skip).limit(opciones.page_size).toArray();
+    let result = await col_productos.find(query).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
     result = result.filter(val => !!val); // eliminar valores nulos
 
     return result;

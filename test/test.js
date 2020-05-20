@@ -60,12 +60,30 @@ describe('Acceso al servidor', function() {
             assert(res.data.count > 0, `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
         });
     });
-    describe('"/:facet/:category.json", api_get_category_products_json', function() {
-        it('/categories/noodles.json debe devolver los productos que corresponden a la categoria (category) noodles (facet)', async function() {
+    describe('"/:category/:facet.json", api_get_category_products_json', function() {
+        it('/category/noodles.json debe devolver los productos que corresponden a la categoria (category) noodles (facet)', async function() {
 
-            const res = await httpGet(`${URL_BASE}/categories/noodles.json`);
+            const res = await httpGet(`${URL_BASE}/category/noodles.json`);
 
             assert(res.data.count > 0, `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
+        });
+    });
+    describe('"/:category/:facet/:num.json", api_get_category_n_products_json', function() {
+        it('/category/pizzas/3.json debe devolver los productos de la tercera página (TAMANO_PAGINA=10) que corresponden a la categoria (category) pizza (facet)', async function() {
+
+            const res = await httpGet(`${URL_BASE}/category/pizzas/3.json`);
+
+            assert(res.data.count > 0, `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
+            assert(res.data.count = 10, `Se debe devolver un array de tamaño TAMANO_PAGINA=10 pero se devolvió uno de tamaño ${res.data.count}`);
+        });
+    });
+    describe('"/cgi/search.pl", api_search_products_json', function() {
+        it('"/cgi/search.pl?action=display&sort_by=unique_scans_n&page_size=20&action=display" debe devolver los productos filtrados y ordenados según la consulta', async function() {
+
+            const res = await httpGet(`${URL_BASE}/cgi/search.pl?action=display&sort_by=unique_scans_n&page_size=20&action=display`);
+
+            assert(res.data.count > 0, `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
+            assert(res.data.count == res.data.products.length, `El tamaño de array de productos debe de coindicidir con el campo count`);
         });
     });
 });

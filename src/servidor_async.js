@@ -63,6 +63,14 @@ const JSON_NOT_FOUND = { status: 0, status_verbose: "object not found" }; // JSO
 
 const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_templates/product.json`, 'utf8')); // JSON plantilla producto
 
+const TAMANO_PAGINA = 10;
+
+const OPCIONES_DEFECTO = {
+    lang: 'en',
+    skip: 0,
+    page_size: TAMANO_PAGINA,
+    sort_by: {}
+};
 /* -------------------------------------------------------------------
    -------               FUNCIONES AUXILIARES                  ------- 
    ------------------------------------------------------------------- */
@@ -135,17 +143,23 @@ function componer_opciones_url_query(query) {
 
     // try {
     if (has(query, 'page_size')) {
-        result['page_size'] = query['page_size'];
+        result['page_size'] = Number(query['page_size']);
     }
     if (has(query, 'skip')) {
-        result['skip'] = query['skip'];
+        result['skip'] = Number(query['skip']);
     }
     if (has(query, 'lang')) {
         result['lang'] = query['lang'];
     }
+    if (has(query, 'sort_by')) {
+        let sort_by = {};
+        sort_by[query['sort_by']] = 1;
+        result['sort_by'] = sort_by;
+    }
     // } catch (error) {
     //     wlog.error(`Error al acceder a los datos de la query: ${error}`);
     // }
+    result = { ...OPCIONES_DEFECTO, ...result };
 
     return result;
 } // componer_opciones_url_query
@@ -287,6 +301,59 @@ async function api_get_facet_json(req, res, next) {
     res.send(json_res);
 }; // api_get_facet_json
 
+
+// -------------------------------------------------------------------
+// Función del API del servidor.
+//
+// CATEGORY: Todos los valores introducidos por los usuarios en la propiedad 'categories_tags'.
+//
+// Al servidor se le pasa en la URL el el nombre de la categoria
+// que se quiere consultar, el valor que deben tener los productos
+// para esa categoría y el número de página de datos requeridos (con TAMANO_PAGINA elementos)
+//
+// Devuelve JSON con los productos que pertenecen a esa categoría
+// o un documento JSON indicando el error.
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function api_get_category_n_products_json(req, res, next) {
+    wlog.silly('api_get_category_products_json');
+
+    let json_res = {};
+
+    let facet = req.params.facet;
+    let exp_facet = facet.trim();
+
+    let category = req.params.category;
+    let exp_category = category.trim();
+
+    let num_pag = req.params.num;
+    let n_num_pag = parseInt(num_pag);
+    try {
+        const opciones = componer_opciones_url_query(req.query);
+        opciones.page_size = TAMANO_PAGINA;
+        opciones.skip = TAMANO_PAGINA * (n_num_pag-1); // pág=1 inicial
+        
+        let result = await bd_buscar_category_products(exp_category, exp_facet, opciones);
+
+        if (result && (result.length > 0)) {
+            json_res['count'] = result.length;
+            json_res['products'] = result;
+            json_res['status'] = 1;
+            json_res['opciones'] = opciones;
+        } else {
+            wlog.info(`Not products in category ${exp_category} for facet ${facet} found`);
+            json_res = { 'count': 0, 'tags': null, 'status': 0, 'opciones': opciones };
+        }
+    } catch (err) {
+        json_res = error_json(err);
+        wlog.error(json_res);
+    };
+    res.send(json_res);
+} // api_get_category_n_products_json
+
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
@@ -316,7 +383,7 @@ async function api_get_category_products_json(req, res, next) {
     try {
         const opciones = componer_opciones_url_query(req.query);
 
-        let result = await bd_buscar_category_products(exp_facet, exp_category, opciones);
+        let result = await bd_buscar_category_products(exp_category, exp_facet, opciones);
 
         if (result && (result.length > 0)) {
             json_res['count'] = result.length;
@@ -352,13 +419,13 @@ async function api_get_category_products_json(req, res, next) {
 async function api_search_products_json(req, res, next) {
     wlog.silly('api_search_products_json');
 
-    //  wlog.silly(req.query);
-
     let json_res = {};
 
     try {
         const opciones = componer_opciones_url_query(req.query);
-        const mongoDB_query = { $and: parse_qs(req.query) };
+
+        const query_parser = parse_qs(req.query);
+        const mongoDB_query = query_parser.length > 0 ? { $and: query_parser } : {};
 
         const result = await bd_buscar_codes(mongoDB_query, opciones);
 
@@ -447,7 +514,8 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.get("/:facet.json", api_get_facet_json);
 
     // URL API para obtener productos que pertenecen a una categoria de un facet
-    aplicacion.get("/:facet/:category.json", api_get_category_products_json);
+    aplicacion.get("/:category/:facet.json", api_get_category_products_json);
+    aplicacion.get("/:category/:facet/:num.json", api_get_category_n_products_json);
 
     // URL API busqueda de un producto
     aplicacion.get("/cgi/search.pl", api_search_products_json);
