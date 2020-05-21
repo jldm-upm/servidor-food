@@ -133,14 +133,22 @@ function error_json(error) {
     };
 } // error_json
 
-// función auxiliar para determinar si un objeto tiene una propiedad
+// -------------------------------------------------------------------
+// Función auxiliar para determinar si un objeto tiene una propiedad
 function has(object, key) {
     wlog.silly(`has(${object},${key})`);
 
     return object ? hasOwnProperty.call(object, key) : false;
 }; // has
 
-
+// Función que con los parámetros pasados en la URL (como Query String),
+// devuelve un objeto con opciones de búsqueda que se utilizarán para llamar
+// a métodos adicionales o como filtros en la BD
+//
+// - page_size -> .limit(...)
+// - skip      -> .skip(...)
+// - lang      -> (concat lang ":" término)
+// - sort_by   -> .sort(...)
 function componer_opciones_url_query(query) {
     wlog.silly(`componer_opciones_url_query(${query})`);
 
@@ -175,6 +183,8 @@ function componer_opciones_url_query(query) {
 
 // -------------------------------------------------------------------
 // Función del API del servidor:
+//
+// /api/v0/product/:barcode.json
 //
 // PRODUCTO: Buscar producto por codigo de barras.
 //
@@ -219,6 +229,8 @@ async function api_get_food_barcode_json(req, res, next) {
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
+//
+// /data/taxonomies/:taxonomia.json
 //
 // TAXONOMIA: Valores predefinidos para una propiedad.
 //
@@ -268,6 +280,8 @@ async function api_get_taxonomia_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
+// /:facet.json
+//
 // FACET: Todos los valores introducidos por los usuarios para una propiedad.
 //
 // Al servidor se le pasa en la URL el nombre del facet que se quiere consultar.
@@ -309,6 +323,8 @@ async function api_get_facet_json(req, res, next) {
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
+//
+// /:category/:facet/:num.json
 //
 // CATEGORY: Todos los valores introducidos por los usuarios en la propiedad 'categories_tags'.
 //
@@ -362,6 +378,8 @@ async function api_get_category_n_products_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
+// /:category/:facet.json
+//
 // CATEGORY: Todos los valores introducidos por los usuarios en la propiedad 'categories_tags'.
 //
 // Al servidor se le pasa en la URL el el nombre de la categoria
@@ -408,6 +426,8 @@ async function api_get_category_products_json(req, res, next) {
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
+//
+// /cgi/search.pl
 //
 // Al servidor se le pasa en la URL como parámetros las opciones de filtro de búsqueda
 // de productos que se le quieren pasar.
