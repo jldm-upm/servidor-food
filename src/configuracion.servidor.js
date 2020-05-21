@@ -17,6 +17,9 @@ const conf = {
     OPCIONES_BUSQUEDA_LIMITE_10: [{ limit: 10 }],
 
     FILTRO_BUSQUEDA_IS_COMPLETE: { complete: 1 },
+
+    ACCESO_SERVICIO_EXTERNO: true,
+    URL_BASE_SERVICIO_EXTERNO: "https://world.openfoodfacts.org"
 };
 
 module.exports = conf;

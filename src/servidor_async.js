@@ -12,6 +12,7 @@
 //             + 05 Mar 2020 - Añadir log estilo Apache mediante middleware 'morgan'
 //             + 03 May 2020 - Modularizar configuración del servidor
 //             + 05 May 2020 - Modularizar acceso a base de datos
+//             + 21 May 2020 - Peticiones al Servicio OFF
 // *******************************************************************
 'use strict';
 
@@ -42,8 +43,12 @@ const {
     PUERTO_SERVIDOR,
     INTERFAZ_SERVIDOR,
 
+    //
+    ACCESO_SERVICIO_EXTERNO,
+    URL_BASE_SERVICIO_EXTERNO,
 } = require('./configuracion.servidor.js');
 
+// importación de funciones de BD
 const {
     bd_buscar_regexp_barcode_product,
     bd_get_valores_facets,
