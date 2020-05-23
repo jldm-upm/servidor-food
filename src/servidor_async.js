@@ -46,7 +46,12 @@ const {
     //
     ACCESO_SERVICIO_EXTERNO,
     URL_BASE_SERVICIO_EXTERNO,
+    AXIOS_CONF,
 } = require('./configuracion.servidor.js');
+
+// instacia del objeto que importa la libería http
+const axios = require('axios').create(AXIOS_CONF);
+
 
 // importación de funciones de BD
 const {
@@ -200,7 +205,7 @@ async function api_get_food_barcode_json(req, res, next) {
     wlog.silly('api_get_food_barcode_json');
 
     let json_res = {};
-
+    
     try {
         const barcode = req.params.barcode; // en OpenFoodFacts los códigos (en 'code') son strings
         json_res['code'] = barcode;
@@ -217,7 +222,22 @@ async function api_get_food_barcode_json(req, res, next) {
             };
         } else {
             wlog.info(`product ${barcode} not found`);
-            json_res = object_not_found_json(barcode, 'product');
+            // no se encontró el producto
+            if (ACCESO_SERVICIO_EXTERNO) {
+                wlog.info('Acceso a servicio externo');
+                // este servidor mapea lo suficientemente bien:
+                const url_busqueda = req.originalUrl;
+                const url_peticion = URL_BASE_SERVICIO_EXTERNO + url_busqueda;
+                wlog.info(`Accediendo a servicio externo: ${url_peticion}`);
+
+                const respuesta = await axios.get(url_peticion);
+                json_res = respuesta.data;
+                // TODO: ¿insertar el dato en la bd si json_res.status=1?
+                wlog.silly(json_res);
+            } else {
+                wlog.info('Devolviendo objeto no encontrado');
+                json_res = object_not_found_json(barcode, 'product');
+            }
         }
 
     } catch (error) {
