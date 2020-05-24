@@ -11,6 +11,7 @@
 //
 // -------------------------------------------------------------------
 //   Historia: + 05 May 2020 - Primera Versión
+//             + 24 May 2020 - Búsqueda de usuarios
 // *******************************************************************
 'use strict';
 
@@ -28,6 +29,8 @@ const {
     PAGE_SIZE,
 
     FILTRO_BUSQUEDA_IS_COMPLETE,
+
+    COLECCION_USUARIOS
 } = require('./configuracion.bd.js');
 
 const MONGO = require('mongodb').MongoClient;
@@ -172,7 +175,21 @@ async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
     return result;
 }; // bd_buscar
 
+async function bd_buscar_usuario(usuario, password) {
+    wlog.silly(`bd_buscar_usuario(${usuario},...)`);
+
+    const c = await MONGO.connect(URL_MONGODB);
+    const db = await c.db(BD_PRODUCTOS);
+    const col_usuarios = await db.collection(COLECCION_USUARIOS);
+
+    const query = { username: usuario };
+    
+    let result = await col_usuarios.findOne(query);
+}
+
 exports.bd_buscar_regexp_barcode_product = bd_buscar_regexp_barcode_product;
 exports.bd_get_valores_facets = bd_get_valores_facets;
 exports.bd_buscar_category_products = bd_buscar_category_products;
 exports.bd_buscar_codes = bd_buscar_codes;
+
+exports.bd_buscar_usuario = bd_buscar_usuario;

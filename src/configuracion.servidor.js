@@ -11,7 +11,7 @@
 
 const conf = {
     // parámetros de escuchador del servicio web
-    PUERTO_SERVIDOR: 8080,
+    PUERTO_SERVIDOR: 8000,
     INTERFAZ_SERVIDOR: 'localhost',
 
     OPCIONES_BUSQUEDA_LIMITE_10: [{ limit: 10 }],

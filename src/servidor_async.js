@@ -32,6 +32,12 @@ const url = require("url");
 const querystring = require("querystring");
 // librería 'middleware' para express de logging
 const morgan = require("morgan");
+// librería 'middleware' para parsear parámetros 'POST'
+const bodyParser = require('body-parser');
+// librería de utilidades criptográficas
+const bcrypt = require('bcryptjs');
+// librería para la generación de UUIDS
+const uuid = require('uuid');
 // librería sistema de ficheros local
 const fs = require('fs');
 
@@ -59,6 +65,8 @@ const {
     bd_get_valores_facets,
     bd_buscar_category_products,
     bd_buscar_codes,
+
+    bd_buscar_usuario,
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -182,6 +190,13 @@ function componer_opciones_url_query(query) {
     return result;
 } // componer_opciones_url_query
 
+// Función auxiliar que devuelve el timestamp en formato unix:
+function getUnixTime() {
+    wlog.silly('getUnixTime');
+    
+    const timestamp = Math.round((new Date()).getTime() / 1000);
+    return timestamp;
+}
 /* -------------------------------------------------------------------
    -------                    FUNCIONES API                    ------- 
    ------------------------------------------------------------------- */
@@ -498,6 +513,74 @@ async function api_search_products_json(req, res, next) {
 } // api_search_products_json
 
 /* -------------------------------------------------------------------
+   -------                   API SESIONES                      ------- 
+   ------------------------------------------------------------------- */
+// -------------------------------------------------------------------
+// Objeto que mantendrá las sesiones,
+// Contendrá objetos cuya clave es un uuid y contendrán { un: username, ts: timestamp }
+let sessiones = {};
+
+/*       LIBRERIAS AUXILIARES       */
+function addSession(username) {
+    const session_id = uuid.v5(username, "tfg.jldm.servidor2020");
+    const timestamp  = getUnixTime();
+
+    let session_obj = {};
+    session_obj['un'] = username;
+    session_obj['ts'] = timestamp;
+    
+    sessiones[session_id] = session_obj;
+
+    return session_obj;
+}
+
+// Función del API del servidor.
+//
+// /login
+//
+// Al servidor se le pasa como parámetros post el nombre de usuario
+// (username) y la contraseña (password).
+//
+// Comprueba si existen en la BD y si es así devuelve un JSON con 'status=1' y
+// con los datos de usuario (incluyendo) un número de sessión.
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function api_login(req, res, next) {
+    wlog.silly('api_login');
+
+    const username = req.body.username,
+          password = req.body.password;
+
+    let json_res = { status: 1 };
+    
+    try {
+        const result = bd_buscar_usuario(username, password);
+
+        if (result) {
+            // se ha encontrado el usuario: comprobar que es correcto
+            if (bcrypt.compareSync(password, result.hash)) {
+                const session = addSession(username);
+                json_res['session'] = session;
+                json_res['username'] = username;
+                json_res['conf'] = result.conf;
+            } else {
+                json_res = object_not_found_json(username,'password');
+            }
+        } else {
+            json_res = object_not_found_json(username, 'usuario');
+        }
+    } catch(error) {
+        json_res = error_json(error);
+    }
+
+    res.send(json_res);
+}
+
+
+/* -------------------------------------------------------------------
    -------            CONFIGURACIÓN DEL SERVIDOR               ------- 
    ------------------------------------------------------------------- */
 
@@ -514,6 +597,12 @@ function configurar(aplicacion, clienteMongo) {
     // --- MIDDLEWARE: ---
     // -------------------
 
+    // middleware para parsear parámetros json
+    aplicacion.use( bodyParser.json() );       // to support JSON-encoded bodies
+    aplicacion.use(bodyParser.urlencoded({     // to support URL-encoded bodies
+        extended: true
+    }));
+    
     // middleware de log usando la librería morgan (formato Apache)
     const morgan_fmt = "[:date[iso]] access - HTTP/:http-version :method :url - :remote-addr [:status :response-time ms]";
     aplicacion.use(morgan(morgan_fmt));
@@ -565,6 +654,9 @@ function configurar(aplicacion, clienteMongo) {
     // URL API busqueda de un producto
     aplicacion.get("/cgi/search.pl", api_search_products_json);
 
+    // URL API login
+    aplicacion.post("/login", api_login);
+    
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {
         wlog.silly('resource_not_found_json');
