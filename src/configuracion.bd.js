@@ -15,6 +15,7 @@
 
   FILTRO_BUSQUEDA_IS_COMPLETE,
 
+  BD_USUARIOS,
   COLECCION_USUARIOS,
 }
 */
@@ -30,6 +31,7 @@ const PAGE_SIZE = 10;
 
 const FILTRO_BUSQUEDA_IS_COMPLETE = { complete: 1 };
 
+const BD_USUARIOS = "jldm";
 const COLECCION_USUARIOS = "usuarios";
 
 exports.BD_PRODUCTOS = BD_PRODUCTOS;

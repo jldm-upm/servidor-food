@@ -14,9 +14,7 @@ const conf = {
     PUERTO_SERVIDOR: 8000,
     INTERFAZ_SERVIDOR: 'localhost',
 
-    OPCIONES_BUSQUEDA_LIMITE_10: [{ limit: 10 }],
-
-    FILTRO_BUSQUEDA_IS_COMPLETE: { complete: 1 },
+    TAMANO_PAGINA: 10,
     
     // 'flag' que indica si en caso de no encontrar el producto si entonces se debe
     // acceder al servicio

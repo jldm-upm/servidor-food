@@ -13,6 +13,7 @@
 //             + 03 May 2020 - Modularizar configuración del servidor
 //             + 05 May 2020 - Modularizar acceso a base de datos
 //             + 21 May 2020 - Peticiones al Servicio OFF
+//             + 23 May 2020 - sesiones: login/new usuarios
 // *******************************************************************
 'use strict';
 
@@ -44,11 +45,13 @@ const fs = require('fs');
 const parse_qs = require('./search_querystring.js');
 
 const {
-
     // parámetros de escuchador del servicio web
     PUERTO_SERVIDOR,
     INTERFAZ_SERVIDOR,
 
+    //
+    TAMANO_PAGINA,
+    
     //
     ACCESO_SERVICIO_EXTERNO,
     URL_BASE_SERVICIO_EXTERNO,
@@ -58,7 +61,6 @@ const {
 // instacia del objeto que importa la libería http
 const axios = require('axios').create(AXIOS_CONF);
 
-
 // importación de funciones de BD
 const {
     bd_buscar_regexp_barcode_product,
@@ -67,6 +69,7 @@ const {
     bd_buscar_codes,
 
     bd_buscar_usuario,
+    bd_nuevo_usuario,
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -80,8 +83,6 @@ const PATH_TAXONOMIES = `${PATH_STATIC}/tax`;
 const JSON_NOT_FOUND = { status: 0, status_verbose: "object not found" }; // JSON objeto no encontrado
 
 const JSON_PRODUCT_TEMPLATE = JSON.parse(fs.readFileSync(`${PATH_STATIC}/json_templates/product.json`, 'utf8')); // JSON plantilla producto
-
-const TAMANO_PAGINA = 10;
 
 const OPCIONES_DEFECTO = {
     lang: 'en',
@@ -286,6 +287,7 @@ async function api_get_taxonomia_json(req, res, next) {
         'additives_classes',
         'allergens',
         'brands',
+        'categories',
         'countries',
         'ingredients',
         'ingredients_analysis',
@@ -309,7 +311,6 @@ async function api_get_taxonomia_json(req, res, next) {
         wlog.error(object_not_found_json(exp_taxonomia, 'taxonomy'));
         res.send(object_not_found_json(exp_taxonomia, 'taxonomy'));
     }
-
 }; // api_get_taxonomia_json
 
 // -------------------------------------------------------------------
@@ -361,7 +362,9 @@ async function api_get_facet_json(req, res, next) {
 //
 // /:category/:facet/:num.json
 //
-// CATEGORY: Todos los valores introducidos por los usuarios en la propiedad 'categories_tags'.
+// :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
+// :FACET: Valor que puede toma la propiedad :CATEGORY 
+// :NUM: Número de página (el tamaño de las páginas se indica en el valor de conf. TAMANO_PAGINA)
 //
 // Al servidor se le pasa en la URL el el nombre de la categoria
 // que se quiere consultar, el valor que deben tener los productos
@@ -386,8 +389,9 @@ async function api_get_category_n_products_json(req, res, next) {
     let exp_category = category.trim();
 
     let num_pag = req.params.num;
-    let n_num_pag = parseInt(num_pag);
     try {
+        let n_num_pag = parseInt(num_pag);
+        
         const opciones = componer_opciones_url_query(req.query);
         opciones.page_size = TAMANO_PAGINA;
         opciones.skip = TAMANO_PAGINA * (n_num_pag-1); // pág=1 inicial
@@ -415,7 +419,8 @@ async function api_get_category_n_products_json(req, res, next) {
 //
 // /:category/:facet.json
 //
-// CATEGORY: Todos los valores introducidos por los usuarios en la propiedad 'categories_tags'.
+// :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
+// :FACET: Valor que puede toma la propiedad :CATEGORY 
 //
 // Al servidor se le pasa en la URL el el nombre de la categoria
 // que se quiere consultar y el valor que deben tener los productos para esa categoría.
@@ -470,8 +475,6 @@ async function api_get_category_products_json(req, res, next) {
 // Devuelve JSON con los productos filtrados
 // o un documento JSON indicando el error.
 //
-// 
-//
 // Parámetros:
 //  - req: petición del cliente
 //  - res: respuesta del servidor
@@ -518,37 +521,55 @@ async function api_search_products_json(req, res, next) {
 // -------------------------------------------------------------------
 // Objeto que mantendrá las sesiones,
 // Contendrá objetos cuya clave es un uuid y contendrán { un: username, ts: timestamp }
-let sessiones = {};
+let sesiones = {};
 
-/*       LIBRERIAS AUXILIARES       */
+/*       FUNCIONES AUXILIARES USUARIOS      */
+/* Función que añade una sesión para el usuario 'username'.
+
+   Modifica la variable sesiones.
+
+   Parámetros:
+    username: nombre de usuario para el que se creará la sesión
+
+   Devuelve:
+    un objeto con la información que se almacena de la sesión
+*/
 function addSession(username) {
     const session_id = uuid.v5(username, "tfg.jldm.servidor2020");
     const timestamp  = getUnixTime();
 
+    // borrar sesiones de este usuario
+    for (let id in Object.keys(sesiones)) {
+        if (sesiones[id].username == username) {
+            delete sesiones[id];
+        }
+    }
+    
     let session_obj = {};
     session_obj['un'] = username;
     session_obj['ts'] = timestamp;
     
-    sessiones[session_id] = session_obj;
+    sesiones[session_id] = session_obj;
 
     return session_obj;
 }
 
-// Función del API del servidor.
+// Función del API de usuarios del servidor.
 //
-// /login
+// /user/login
 //
 // Al servidor se le pasa como parámetros post el nombre de usuario
 // (username) y la contraseña (password).
 //
-// Comprueba si existen en la BD y si es así devuelve un JSON con 'status=1' y
-// con los datos de usuario (incluyendo) un número de sessión.
+// Comprueba si existen en la BD y si es así crea un objeto de sesion
+// que almacena en la variable sesiones y devuelve este objeto con 'status'=1,
+// ('status'=0) si no se encontró el usuario o se pudo crear la sesión
 //
 // Parámetros:
 //  - req: petición del cliente
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
-async function api_login(req, res, next) {
+async function user_login(req, res, next) {
     wlog.silly('api_login');
 
     const username = req.body.username,
@@ -557,11 +578,12 @@ async function api_login(req, res, next) {
     let json_res = { status: 1 };
     
     try {
-        const result = bd_buscar_usuario(username, password);
+        const result = await bd_buscar_usuario(username);
 
         if (result) {
             // se ha encontrado el usuario: comprobar que es correcto
             if (bcrypt.compareSync(password, result.hash)) {
+                // nueva sesion
                 const session = addSession(username);
                 json_res['session'] = session;
                 json_res['username'] = username;
@@ -571,6 +593,77 @@ async function api_login(req, res, next) {
             }
         } else {
             json_res = object_not_found_json(username, 'usuario');
+        }
+    } catch(error) {
+        json_res = error_json(error);
+    }
+
+    res.send(json_res);
+}
+
+// Función del API de usuarios del servidor.
+//
+// /user/new
+//
+// Al servidor se le pasa como parámetros post el nombre de usuario
+// (username) y la contraseña (password).
+//
+// Comprueba si existe un usuario en la BD y si es así o hay algún otro problema
+// para crear el usuario devuelve un JSON con 'status=0'.
+//
+// Si no existe guarda un hash de la contraseña y salt en la BD,
+// junto con el nombre de usuario y con los datos de usuario (incluyendo un número de sessión).
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function user_newuser(req, res, next) {
+    wlog.silly('api_newuser');
+
+    const username = req.body.username,
+          password = req.body.password,
+          password2 = req.body.password2,
+          accepted = req.body.accepted;
+
+    let json_res = { status: 1 };
+    
+    try {
+        const result = bd_buscar_usuario(username);
+
+        if (result) {
+            // se ha encontrado el usuario: no se puede crear
+            json_res['status'] = 0;
+            res['status_verbose'] = `User ${username} already exist`;
+        } else {
+            // algunas comprobaciones
+            if (username && password && password2 && accepted) {
+                if ((username.length > 0) &&
+                    (password.length > 7) &&
+                    (password2.length > 7) &&
+                    (password == password2) &&
+                    accepted) {
+                    const salt = bcrypt.genSaltSync(16);
+                    const hash = bcrypt.hashSync(password, salt);
+                    const res_alta = await bd_nuevo_usuario(username, hash, salt);
+                    if (res_alta) {
+                        const session = addSession(username);
+                        json_res['session'] = session;
+                        json_res['username'] = username;
+                        json_res['conf'] = {};
+                        json_res['status_verbose'] = res_alta;
+                    } else {
+                        json_res['status'] = 0;
+                        res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
+                    }
+                } else {
+                    json_res['status'] = 0;
+                    res['status_verbose'] = 'Some fields are incorrect';
+                }
+            } else {
+                json_res['status'] = 0;
+                res['status_verbose'] = 'Some fields doesnt exist';
+            }
         }
     } catch(error) {
         json_res = error_json(error);
@@ -655,13 +748,14 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.get("/cgi/search.pl", api_search_products_json);
 
     // URL API login
-    aplicacion.post("/login", api_login);
+    aplicacion.post("/user", user_login);
+    aplicacion.post("/user/new", user_newuser);
     
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {
-        wlog.silly('resource_not_found_json');
+        wlog.warn(`resource_not_found_json (${req.url})`);
         res.set('Content-Type', 'application/json');
-        res.status(404).send({ status: 0, url: req.url, status_verbose: "resource not found" });
+        res.status(404).send({ status: 0, url: req.url, status_verbose: `resource not found: ${req.url}` });
     });
 
     return aplicacion;
