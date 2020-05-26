@@ -36,6 +36,7 @@ const {
 } = require('./configuracion.bd.js');
 
 const MONGO = require('mongodb').MongoClient;
+const MONGO_U = require('mongodb').MongoClient;
 
 const load_tax = require('./taxonomies.js').load_tax;
 
@@ -90,14 +91,14 @@ const arr_categories_sl = [
     'store',
     'trace'];
 /*
- Función para buscar un producto por código de barras
+  Función para buscar un producto por código de barras
 
- Parámetros:
-   - regexp_barcode: una expresión regular representando el código de barras a buscar
-   - [opciones]: opciones de búsqueda
- Devuelve:
-   - Un objeto que representa el producto en formato JSON
- */
+  Parámetros:
+  - regexp_barcode: una expresión regular representando el código de barras a buscar
+  - [opciones]: opciones de búsqueda
+  Devuelve:
+  - Un objeto que representa el producto en formato JSON
+*/
 async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIONES_DEFECTO) {
     wlog.silly(`bd_buscar_regexp_barcode_product(${regexp_barcode})`);
     const c = await MONGO.connect(URL_MONGODB);
@@ -113,14 +114,14 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
 }; // bd_buscar_regexp_barcode_product
 
 /*
- Función para buscar los valores distintos (facets )que contiene el campo
+  Función para buscar los valores distintos (facets )que contiene el campo
 
- Parámetros:
-   - campo: una propiedad de los productos
-   - [opciones]: opciones de búsqueda
- Devuelve:
-   - Todos los valores posibles que puede tomar la propiedad
- */
+  Parámetros:
+  - campo: una propiedad de los productos
+  - [opciones]: opciones de búsqueda
+  Devuelve:
+  - Todos los valores posibles que puede tomar la propiedad
+*/
 async function bd_get_valores_facets(campo, opciones = OPCIONES_DEFECTO) {
     wlog.silly(`bd_get_valores_facets(${campo},${JSON.stringify(opciones)})`);
 
@@ -153,15 +154,15 @@ async function bd_get_valores_facets(campo, opciones = OPCIONES_DEFECTO) {
 }; // bd_get_valores_facets
 
 /*
- Función para buscar todos los productos que contengan el valor perteneciente a una propiedad 
+  Función para buscar todos los productos que contengan el valor perteneciente a una propiedad 
 
- Parámetros:
-   - category: la propiedad en la que se buscar los valores
-   - facet: el valor de la propiedad a buscar
-   - [opciones]: opciones de búsqueda
- Devuelve:
-   - Todos los productos en los que el valor este contenido en la propiedad
- */
+  Parámetros:
+  - category: la propiedad en la que se buscar los valores
+  - facet: el valor de la propiedad a buscar
+  - [opciones]: opciones de búsqueda
+  Devuelve:
+  - Todos los productos en los que el valor este contenido en la propiedad
+*/
 async function bd_buscar_category_products(category, facet, opciones = OPCIONES_DEFECTO) {
     wlog.silly(`bd_buscar_category_products(${category},${facet},${JSON.stringify(opciones)})`);
 
@@ -193,14 +194,14 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
 } // bd_buscar_category_products
 
 /*
- Función para buscar todos los productos que coincidan con la query de búsqueda
+  Función para buscar todos los productos que coincidan con la query de búsqueda
 
- Parámetros:
-   - query: objeto que representa una query mongoDB
-   - [opciones]: opciones de búsqueda
- Devuelve:
-   - Todos los productos que devuelva la consulta
- */
+  Parámetros:
+  - query: objeto que representa una query mongoDB
+  - [opciones]: opciones de búsqueda
+  Devuelve:
+  - Todos los productos que devuelva la consulta
+*/
 async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
     wlog.silly(`bd_buscar(${JSON.stringify(query)}, ${JSON.stringify(opciones)}})`);
 
@@ -217,77 +218,69 @@ async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
 }; // bd_buscar
 
 /*
- Función para buscar un usuario cuyo username sea usuario
+  Función para buscar un usuario cuyo username sea usuario
 
- Parámetros:
-   - usuario: nombre de usuario a buscar
- Devuelve:
-   - El objeto usuario encontrado
- */
+  Parámetros:
+  - usuario: nombre de usuario a buscar
+  Devuelve:
+  - El objeto usuario encontrado
+*/
 async function bd_buscar_usuario(usuario) {
     wlog.silly(`bd_buscar_usuario(${usuario})`);
 
-    const c = await MONGO.connect(URL_MONGODB);
+    wlog.silly(`${JSON.stringify(usuario)}`);
+    const c = await MONGO_U.connect(URL_MONGODB);
     const db = await c.db(BD_USUARIOS);
+
     const col_usuarios = await db.collection(COLECCION_USUARIOS);
 
-    const query = { username: usuario };
-    
+    const query = {};
+    query['username'] = usuario;
+    wlog.silly(JSON.stringify(query));
     let result = await col_usuarios.findOne(query);
-
-    if (result) {
-        delete result['hash'];
-        delete result['salt'];
-    }
     
     return result;
-}
+}; // async bd_buscar_usuario
 
 /*
- Función para crear un nuevo usuario cuyo username sea usuario.
+  Función para crear un nuevo usuario cuyo username sea usuario.
 
- El usuario sólo se creará si no existia antes.
+  El usuario sólo se creará si no existia antes.
 
- Si existia devolverá un error.
+  Si existia devolverá un error.
 
- Parámetros:
-   - usuario: nombre de usuario
-   - hash: hash (bcrypt) de la contraseña de usuario
-   - salt: salt usada en la creación del hash
- Devuelve:
-   - El objeto usuario encontrado
- */
-async function bd_nuevo_usuario(usuario, hash, salt) {
+  Parámetros:
+  - usuario: nombre de usuario
+  - hash: hash (bcrypt) de la contraseña de usuario
+  - salt: salt usada en la creación del hash
+  Devuelve:
+  - El objeto usuario encontrado
+*/
+async function bd_nuevo_usuario(usuario, hash, salt, timestamp) {
     wlog.silly(`bd_nuevo_usuario(${usuario},...)`);
 
-    const c = await MONGO.connect(URL_MONGODB);
+    const c = await MONGO_U.connect(URL_MONGODB);
     const db = await c.db(BD_USUARIOS);
     const col_usuarios = await db.collection(COLECCION_USUARIOS);
-
-    const existe = await bd_buscar_usuario(usuario);
-
-    if (existe) {
-        const error = { status_bd: 'Already existed', username: usuario };
-        throw error;
-        return error;
-    }
     
     const nuevo_usuario = {};
-    nuevo_usuario['_id'] = nuevo_usuario; // los username no deberían estar repetidos
-    nuevo_usuario['username'] = nuevo_usuario;
+    // los username no deberían estar repetidos
+    nuevo_usuario['_id'] = usuario;
+    nuevo_usuario['username'] = usuario;
+    nuevo_usuario['create_t'] = timestamp;
+    nuevo_usuario['update_t'] = timestamp;
     nuevo_usuario['conf'] = {};
     nuevo_usuario['hash'] = hash;
-    nuevo_usuario['salt'] = salt; // guardamos la sal para cocinar mas :p ??
-
-    let result = await col_usuarios.insertOne(nuevo_usuario);
+    nuevo_usuario['salt'] = salt; // guardamos la sal para cocinar más :p ??
+    wlog.silly(JSON.stringify(nuevo_usuario));
+    let result = await col_usuarios.insertOne(nuevo_usuario, { j: true });
 
     if (result) {
         delete result['hash'];
         delete result['salt'];
     }
-    
     return result;
-}
+}; // async bd_nuevo_usuario
 
 exports.bd_buscar_regexp_barcode_product = bd_buscar_regexp_barcode_product;
 exports.bd_get_valores_facets = bd_get_valores_facets;
@@ -295,3 +288,4 @@ exports.bd_buscar_category_products = bd_buscar_category_products;
 exports.bd_buscar_codes = bd_buscar_codes;
 
 exports.bd_buscar_usuario = bd_buscar_usuario;
+exports.bd_nuevo_usuario = bd_nuevo_usuario;

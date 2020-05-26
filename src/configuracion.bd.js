@@ -24,7 +24,7 @@ const BD_PRODUCTOS = 'jldm'; // nombre de la bd
 const COLECCION_PRODUCTOS = 'productos'; // nombre de la colección de productos
 
   // parámetros de conexión a la base de datos de productos
-const URL_MONGODB = 'mongodb://localhost:27017/';
+const URL_MONGODB = 'mongodb://localhost:27017/jldm?retryWrites=true&w=majority&j=true';
 const OPCIONES_MONGODB = { poolSize: 10 };
 
 const PAGE_SIZE = 10;

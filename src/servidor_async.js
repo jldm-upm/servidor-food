@@ -31,6 +31,8 @@ const express = require("express");
 // librerías para obtener parámetros de la querystring
 const url = require("url");
 const querystring = require("querystring");
+// librería 'middleware' para express soporte de CORS
+const cors = require('cors');
 // librería 'middleware' para express de logging
 const morgan = require("morgan");
 // librería 'middleware' para parsear parámetros 'POST'
@@ -145,7 +147,7 @@ function error_json(error) {
         'status': 0,
         'status_verbose': error_msj,
     };
-} // error_json
+}; // error_json
 
 // -------------------------------------------------------------------
 // Función auxiliar para determinar si un objeto tiene una propiedad
@@ -197,7 +199,8 @@ function getUnixTime() {
     
     const timestamp = Math.round((new Date()).getTime() / 1000);
     return timestamp;
-}
+}; // getUnixTime
+
 /* -------------------------------------------------------------------
    -------                    FUNCIONES API                    ------- 
    ------------------------------------------------------------------- */
@@ -261,7 +264,7 @@ async function api_get_food_barcode_json(req, res, next) {
         wlog.error(json_res);
     }
     res.send(json_res);
-}; // api_get_food_barcode_json
+}; // async api_get_food_barcode_json
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
@@ -311,7 +314,7 @@ async function api_get_taxonomia_json(req, res, next) {
         wlog.error(object_not_found_json(exp_taxonomia, 'taxonomy'));
         res.send(object_not_found_json(exp_taxonomia, 'taxonomy'));
     }
-}; // api_get_taxonomia_json
+}; // async api_get_taxonomia_json
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
@@ -354,7 +357,7 @@ async function api_get_facet_json(req, res, next) {
     };
 
     res.send(json_res);
-}; // api_get_facet_json
+}; // async api_get_facet_json
 
 
 // -------------------------------------------------------------------
@@ -412,7 +415,7 @@ async function api_get_category_n_products_json(req, res, next) {
         wlog.error(json_res);
     };
     res.send(json_res);
-} // api_get_category_n_products_json
+}; // async api_get_category_n_products_json
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
@@ -462,7 +465,7 @@ async function api_get_category_products_json(req, res, next) {
         wlog.error(json_res);
     };
     res.send(json_res);
-}; // api_get_category_products_json
+}; // async api_get_category_products_json
 
 // -------------------------------------------------------------------
 // Función del API del servidor.
@@ -513,7 +516,7 @@ async function api_search_products_json(req, res, next) {
     };
 
     res.send(json_res);
-} // api_search_products_json
+}; // async api_search_products_json
 
 /* -------------------------------------------------------------------
    -------                   API SESIONES                      ------- 
@@ -529,13 +532,13 @@ let sesiones = {};
    Modifica la variable sesiones.
 
    Parámetros:
-    username: nombre de usuario para el que se creará la sesión
+   username: nombre de usuario para el que se creará la sesión
 
    Devuelve:
-    un objeto con la información que se almacena de la sesión
+   un objeto con la información que se almacena de la sesión
 */
 function addSession(username) {
-    const session_id = uuid.v5(username, "tfg.jldm.servidor2020");
+    const session_id = uuid.v5(username, "36274658-96e5-4b80-8d2d-85d6d8ba50ef");
     const timestamp  = getUnixTime();
 
     // borrar sesiones de este usuario
@@ -552,7 +555,7 @@ function addSession(username) {
     sesiones[session_id] = session_obj;
 
     return session_obj;
-}
+}; // addSession
 
 // Función del API de usuarios del servidor.
 //
@@ -578,28 +581,34 @@ async function user_login(req, res, next) {
     let json_res = { status: 1 };
     
     try {
+        wlog.silly(JSON.stringify(username));
         const result = await bd_buscar_usuario(username);
-
+        wlog.silly(JSON.stringify(result));
         if (result) {
+            wlog.silly(typeof(result.hash));
             // se ha encontrado el usuario: comprobar que es correcto
             if (bcrypt.compareSync(password, result.hash)) {
+                wlog.silly(3);
                 // nueva sesion
                 const session = addSession(username);
                 json_res['session'] = session;
                 json_res['username'] = username;
                 json_res['conf'] = result.conf;
             } else {
+                wlog.silly(4);
                 json_res = object_not_found_json(username,'password');
             }
         } else {
+            wlog.silly(5);
             json_res = object_not_found_json(username, 'usuario');
         }
     } catch(error) {
+        wlog.silly(6);
         json_res = error_json(error);
     }
 
     res.send(json_res);
-}
+}; // async user_login
 
 // Función del API de usuarios del servidor.
 //
@@ -627,42 +636,44 @@ async function user_newuser(req, res, next) {
           accepted = req.body.accepted;
 
     let json_res = { status: 1 };
+    let result = null;
     
     try {
-        const result = bd_buscar_usuario(username);
-
-        if (result) {
-            // se ha encontrado el usuario: no se puede crear
+        if (!(username && password && accepted &&
+              (username.length > 0) &&
+              (password.length > 7))) {
+            wlog.silly("Datos incorrectos");
             json_res['status'] = 0;
-            res['status_verbose'] = `User ${username} already exist`;
+            json_res['status_verbose'] = 'Problemas con los datos recibidos';
         } else {
-            // algunas comprobaciones
-            if (username && password && password2 && accepted) {
-                if ((username.length > 0) &&
-                    (password.length > 7) &&
-                    (password2.length > 7) &&
-                    (password == password2) &&
-                    accepted) {
-                    const salt = bcrypt.genSaltSync(16);
-                    const hash = bcrypt.hashSync(password, salt);
-                    const res_alta = await bd_nuevo_usuario(username, hash, salt);
-                    if (res_alta) {
-                        const session = addSession(username);
-                        json_res['session'] = session;
-                        json_res['username'] = username;
-                        json_res['conf'] = {};
-                        json_res['status_verbose'] = res_alta;
-                    } else {
-                        json_res['status'] = 0;
-                        res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
-                    }
-                } else {
-                    json_res['status'] = 0;
-                    res['status_verbose'] = 'Some fields are incorrect';
-                }
-            } else {
+            wlog.silly("Comprobando...");
+            // comprobar que no existe
+            const usu_check = await bd_buscar_usuario(username);
+            wlog.silly(JSON.stringify(usu_check));
+            if (usu_check) {
+                console.log(`El usuario ${username} ya existe`);
                 json_res['status'] = 0;
-                res['status_verbose'] = 'Some fields doesnt exist';
+                json_res['status_verbose'] = 'El usuario ya existe';
+            }  else {
+                wlog.silly("Comprobaciones correctas: Dando de alta");            
+                const salt = bcrypt.genSaltSync(16);
+                const hash = bcrypt.hashSync(password, salt);
+                const res_alta = await bd_nuevo_usuario(username, hash, salt, getUnixTime());
+                wlog.silly("Resultado del alta:");
+                if (res_alta) {
+                    wlog.silly("Res alta OK");
+                    wlog.silly("Creando sesion");
+                
+                    const session = addSession(username);
+                    json_res['session'] = session;
+                    json_res['username'] = username;
+                    json_res['conf'] = {};
+                    json_res['status_verbose'] = res_alta;
+                } else {
+                    wlog.silly("Res alta FAILED");
+                    json_res['status'] = 0;
+                    res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
+                }
             }
         }
     } catch(error) {
@@ -670,7 +681,7 @@ async function user_newuser(req, res, next) {
     }
 
     res.send(json_res);
-}
+}; // async user_newuser
 
 
 /* -------------------------------------------------------------------
@@ -689,12 +700,14 @@ function configurar(aplicacion, clienteMongo) {
     // -------------------
     // --- MIDDLEWARE: ---
     // -------------------
-
+    // habilitar CORS
+    // aplicacion.use(cors);
+    
     // middleware para parsear parámetros json
     aplicacion.use( bodyParser.json() );       // to support JSON-encoded bodies
-    aplicacion.use(bodyParser.urlencoded({     // to support URL-encoded bodies
+    aplicacion.use( bodyParser.urlencoded({     // to support URL-encoded bodies
         extended: true
-    }));
+    }) );
     
     // middleware de log usando la librería morgan (formato Apache)
     const morgan_fmt = "[:date[iso]] access - HTTP/:http-version :method :url - :remote-addr [:status :response-time ms]";
@@ -713,18 +726,7 @@ function configurar(aplicacion, clienteMongo) {
         res.set('Content-Type', 'application/json');
         next();
     });
-
-    // middleware para la 'autentificación'...
-    aplicacion.use((req, res, next) => {
-        wlog.silly('authentication');
-        if (!(req.get('User-Agent') === 'TFG Sostenibilidad v1.0')) {
-            //res.status(401).send({status: 401, url: req.url, description: "no authorized"});
-            next();
-        } else {
-            next();
-        }
-    });
-
+    
     // --------------
     // --- RUTAS: ---
     // --------------
@@ -747,9 +749,13 @@ function configurar(aplicacion, clienteMongo) {
     // URL API busqueda de un producto
     aplicacion.get("/cgi/search.pl", api_search_products_json);
 
+    // USUARIOS
+    
     // URL API login
-    aplicacion.post("/user", user_login);
-    aplicacion.post("/user/new", user_newuser);
+    aplicacion.options('/user', cors());
+    aplicacion.post("/user", cors(), user_login);
+    aplicacion.options('/user/new', cors());
+    aplicacion.post("/user/new", cors(), user_newuser);
     
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {
