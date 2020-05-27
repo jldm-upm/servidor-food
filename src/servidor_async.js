@@ -681,23 +681,23 @@ async function user_newuser(req, res, next) {
             const usu_check = await bd_buscar_usuario(username);
             wlog.silly(JSON.stringify(usu_check));
             if (usu_check) {
-                console.log(`El usuario ${username} ya existe`);
+                wlog.info(`El usuario ${username} ya existe`);
                 json_res['status'] = 0;
                 json_res['status_verbose'] = 'El usuario ya existe';
             }  else {
-                wlog.silly("Comprobaciones correctas: Dando de alta");            
+                wlog.info("Comprobaciones correctas: Dando de alta");            
                 const salt = bcrypt.genSaltSync(16);
                 const hash = bcrypt.hashSync(password, salt);
                 const res_alta = await bd_nuevo_usuario(username, hash, salt, getUnixTime());
-                wlog.silly("Resultado del alta:");
+                wlog.info("Resultado del alta:");
                 if (res_alta) {
-                    wlog.silly("Res alta OK");
+                    wlog.info("Res alta OK");
                     wlog.silly("Creando sesion");
 
-                    json_res = nueva_session();
+                    json_res = resultadoSesion();
                     wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
                 } else {
-                    wlog.silly("Res alta FAILED");
+                    wlog.info("Res alta FAILED");
                     json_res['status'] = 0;
                     res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
                 }
