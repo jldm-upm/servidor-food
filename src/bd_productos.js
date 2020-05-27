@@ -29,7 +29,7 @@ const {
 
     PAGE_SIZE,
 
-    FILTRO_BUSQUEDA_IS_COMPLETE,
+    FILTRO_BUSQUEDA_ADICIONAL,
 
     BD_USUARIOS,
     COLECCION_USUARIOS
@@ -106,8 +106,9 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
 
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
-    const query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE, code: { $regex: regexp_barcode, $options: "$i" } };
+    const query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL, code: { $regex: regexp_barcode, $options: "$i" } };
 
+    wlog.silly(`query: ${JSON.stringify(query_busqueda)}`);
     const result = await col_productos.findOne(query_busqueda); //.sort(opciones.sort_by);
 
     return result;
@@ -141,7 +142,7 @@ async function bd_get_valores_facets(campo, opciones = OPCIONES_DEFECTO) {
     const field = campo + "_tags";
 
     // 1 - con distinct:
-    result = await col_productos.distinct(field, FILTRO_BUSQUEDA_IS_COMPLETE);
+    result = await col_productos.distinct(field, FILTRO_BUSQUEDA_ADICIONAL);
 
     // 2 - con agregaciones:
     // let query = [{ $group: {} }];
@@ -179,7 +180,7 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
         // TODO: traducir y generalizar
         const valor = opciones.lang + ":" + facet;
 
-        let query_busqueda = { ...FILTRO_BUSQUEDA_IS_COMPLETE };
+        let query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL };
         query_busqueda[facet_tags] = valor;
         wlog.silly(JSON.stringify(query_busqueda));
         wlog.silly(`QUERY: ${JSON.stringify(query_busqueda)}`);
