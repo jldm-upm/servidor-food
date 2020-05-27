@@ -810,7 +810,8 @@ function configurar(aplicacion, clienteMongo) {
     // --------------
 
     // URL API de información de producto através de su `barcode'.
-    aplicacion.get("/api/v0/product/:barcode.json", api_get_food_barcode_json);
+    aplicacion.options('/api/v0/product/:barcode.json', cors());
+    aplicacion.get('/api/v0/product/:barcode.json', cors(), api_get_food_barcode_json);
 
     // URL API de valores de "taxonomías".
     aplicacion.get("/data/taxonomies/:taxonomia.json", api_get_taxonomia_json);
