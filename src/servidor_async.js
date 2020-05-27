@@ -528,13 +528,25 @@ let sesiones = {};
 
 /*       FUNCIONES AUXILIARES USUARIOS      */
 
+/* Función que devuelve el resultado de añadir una nueva sesion
+
+   Modifica la variable sesiones.
+
+   Parámetros:
+     json_res: el objeto de respuesta que se modificará con los datos de sesión a devolver
+
+     usuario: datos del usuario que están en la bd
+
+   Devuelve:
+   un objeto con la información que se almacena de la sesión
+*/
 function resultadoSesion(json_res, usuario) {
-    wlog.silly(`resultadoSesion(${json_res},${usuario})`);
+    wlog.silly(`resultadoSesion(${JSON.stringify(json_res)}, ${JSON.stringify(usuario)})`);
     const res = { ...json_res };
     // Añadir la sesion
-    const session = ponerSesion(usuario.username);
+    const new_sesion = ponerSesion(usuario.username);
     
-    res['session'] = session;
+    res['session'] = new_sesion;
     res['username'] = usuario.username;
     res['conf'] = res.conf;
     res['vot'] = res.vot;
@@ -557,10 +569,11 @@ function ponerSesion(username) {
     const timestamp = getUnixTime();
     const session_id = uuid.v5(username + timestamp, "36274658-96e5-4b80-8d2d-85d6d8ba50ef");
 
+    console.log(`SESIONES: ${sesiones}`);
     // borrar sesiones de este usuario
-    for (let id in Object.keys(sesiones)) {
-        if (sesiones[id].un == username) {
-            delete sesiones[id];
+    for (let ses in sesiones) {
+        if (ses.un == username) {
+            delete sesiones[ses.id];
         }
     }
     
@@ -694,7 +707,7 @@ async function user_newuser(req, res, next) {
                     wlog.info("Res alta OK");
                     wlog.silly("Creando sesion");
 
-                    json_res = resultadoSesion();
+                    json_res = resultadoSesion(json_res, {});
                     wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
                 } else {
                     wlog.info("Res alta FAILED");
