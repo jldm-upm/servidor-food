@@ -527,6 +527,21 @@ async function api_search_products_json(req, res, next) {
 let sesiones = {};
 
 /*       FUNCIONES AUXILIARES USUARIOS      */
+
+function resultadoSesion(json_res, usuario) {
+    wlog.silly(`resultadoSesion(${json_res},${usuario})`);
+    const res = { ...json_res };
+    // Añadir la sesion
+    const session = ponerSesion(usuario.username);
+    
+    res['session'] = session;
+    res['username'] = usuario.username;
+    res['conf'] = res.conf;
+    res['vot'] = res.vot;
+    
+    return res;
+} // resultadoSesion
+
 /* Función que añade una sesión para el usuario 'username'.
 
    Modifica la variable sesiones.
@@ -537,25 +552,45 @@ let sesiones = {};
    Devuelve:
    un objeto con la información que se almacena de la sesión
 */
-function addSession(username) {
-    const session_id = uuid.v5(username, "36274658-96e5-4b80-8d2d-85d6d8ba50ef");
-    const timestamp  = getUnixTime();
+function ponerSesion(username) {
+    wlog.silly(`ponerSesion(${username})`);
+    const timestamp = getUnixTime();
+    const session_id = uuid.v5(username + timestamp, "36274658-96e5-4b80-8d2d-85d6d8ba50ef");
 
     // borrar sesiones de este usuario
     for (let id in Object.keys(sesiones)) {
-        if (sesiones[id].username == username) {
+        if (sesiones[id].un == username) {
             delete sesiones[id];
         }
     }
     
     let session_obj = {};
+    session_obj['id'] = session_id;
     session_obj['un'] = username;
     session_obj['ts'] = timestamp;
     
     sesiones[session_id] = session_obj;
 
     return session_obj;
-}; // addSession
+}; // ponerSesion
+
+function getSesion(session_id) {
+    wlog.silly(`getSesion(${session_id})`);
+    return sesiones[session_id];
+} // getSesion
+
+function borrarSesion(session_id) {
+    wlog.silly(`borrarSesion(${session_id})`);
+    const res = getSesion(session_id);
+    if (res) {
+        wlog.silly('Sesión encontada');
+        delete sesiones[session_id];
+    } else {
+        wlog.silly('Sesión no econtrada');
+    }
+    
+    return res;
+} // borrarSesion
 
 // Función del API de usuarios del servidor.
 //
@@ -573,37 +608,32 @@ function addSession(username) {
 //  - res: respuesta del servidor
 //  - next: callback después de tratar esta petición
 async function user_login(req, res, next) {
-    wlog.silly('api_login');
+    wlog.silly('user_login');
 
     const username = req.body.username,
           password = req.body.password;
 
-    let json_res = { status: 1 };
+    let json_res = { status: 1, status_verbose: 'OK' };
     
     try {
-        wlog.silly(JSON.stringify(username));
         const result = await bd_buscar_usuario(username);
-        wlog.silly(JSON.stringify(result));
+        wlog.silly(`resultado: ${JSON.stringify(result)}`);
         if (result) {
-            wlog.silly(typeof(result.hash));
             // se ha encontrado el usuario: comprobar que es correcto
             if (bcrypt.compareSync(password, result.hash)) {
-                wlog.silly(3);
+                wlog.silly(`Contraseña correcta para ${username}`);
                 // nueva sesion
-                const session = addSession(username);
-                json_res['session'] = session;
-                json_res['username'] = username;
-                json_res['conf'] = result.conf;
+                json_res = resultadoSesion(json_res, result);
+                wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
             } else {
-                wlog.silly(4);
+                wlog.info(`El usuario ${username} no tiene la clave indicada`);
                 json_res = object_not_found_json(username,'password');
             }
         } else {
-            wlog.silly(5);
+            wlog.info(`No existe usuario: ${username}`);
             json_res = object_not_found_json(username, 'usuario');
         }
     } catch(error) {
-        wlog.silly(6);
         json_res = error_json(error);
     }
 
@@ -663,12 +693,9 @@ async function user_newuser(req, res, next) {
                 if (res_alta) {
                     wlog.silly("Res alta OK");
                     wlog.silly("Creando sesion");
-                
-                    const session = addSession(username);
-                    json_res['session'] = session;
-                    json_res['username'] = username;
-                    json_res['conf'] = {};
-                    json_res['status_verbose'] = res_alta;
+
+                    json_res = nueva_session();
+                    wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
                 } else {
                     wlog.silly("Res alta FAILED");
                     json_res['status'] = 0;
@@ -683,6 +710,44 @@ async function user_newuser(req, res, next) {
     res.send(json_res);
 }; // async user_newuser
 
+// Función del API de usuarios del servidor.
+//
+// /user/logout
+//
+// Al servidor se le pasa como parámetro el nombre de usuario y el identificador de sesion.
+//
+// Comprueba si existen en el gestor de sesiones BD y si es así lo elimina
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function user_logout(req, res, next) {
+    wlog.silly(`api_logout(${JSON.stringify(req.body)})`);
+
+    const username = req.body.un,
+          session_id = req.body.id,
+          timestamp_li = req.body.ts;
+
+    let json_res = { status: 1 };
+    
+    try {
+        if (username && session_id) {
+            const session_borrada = borrarSesion(session_id);
+            if (!session_borrada) {
+                json_res['status'] = 0;
+                json_res['status_verbose'] = `Sesión ${session_id} no encontrada`;
+            }
+        } else {
+            json_res['status'] = 0;
+            json_res['status_verbose'] = 'Datos de sesión incorrectos';
+        }
+    } catch(error) {
+        json_res = error_json(error);
+    }
+
+    res.send(json_res);
+}; // async user_logout
 
 /* -------------------------------------------------------------------
    -------            CONFIGURACIÓN DEL SERVIDOR               ------- 
@@ -752,10 +817,13 @@ function configurar(aplicacion, clienteMongo) {
     // USUARIOS
     
     // URL API login
-    aplicacion.options('/user', cors());
-    aplicacion.post("/user", cors(), user_login);
+    aplicacion.options('/user/login', cors());
+    aplicacion.post("/user/login", cors(), user_login);
     aplicacion.options('/user/new', cors());
     aplicacion.post("/user/new", cors(), user_newuser);
+    aplicacion.options('/user/logout', cors());
+    aplicacion.post("/user/logout", cors(), user_logout);
+
     
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {

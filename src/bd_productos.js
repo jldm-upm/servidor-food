@@ -270,6 +270,7 @@ async function bd_nuevo_usuario(usuario, hash, salt, timestamp) {
     nuevo_usuario['create_t'] = timestamp;
     nuevo_usuario['update_t'] = timestamp;
     nuevo_usuario['conf'] = {};
+    nuevo_usuario['vot'] = {};
     nuevo_usuario['hash'] = hash;
     nuevo_usuario['salt'] = salt; // guardamos la sal para cocinar más :p ??
     wlog.silly(JSON.stringify(nuevo_usuario));
