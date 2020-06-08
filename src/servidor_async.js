@@ -14,6 +14,7 @@
 //             + 05 May 2020 - Modularizar acceso a base de datos
 //             + 21 May 2020 - Peticiones al Servicio OFF
 //             + 23 May 2020 - sesiones: login/new usuarios
+//             + 28 May 2020 - sesiones: /user/save
 // *******************************************************************
 'use strict';
 
@@ -70,8 +71,9 @@ const {
     bd_buscar_category_products,
     bd_buscar_codes,
 
-    bd_buscar_usuario,
-    bd_nuevo_usuario,
+    bd_usuario_buscar,
+    bd_usuario_nuevo,
+    bd_usuario_salvar
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -103,7 +105,7 @@ const OPCIONES_DEFECTO = {
 //  - producto_json: un objeto json tal y como se devuelve por la BD
 // Devuelve:
 //  - objeto JSON con la respuesta del servidor.
-function componer_producto_json(producto_json) {
+function componer_producto_json(producto_json, sostenibilidad_usuario) {
     wlog.silly('componer_producto_json');
     // let json_res = {};
 
@@ -233,7 +235,9 @@ async function api_get_food_barcode_json(req, res, next) {
         const res_busqueda = await bd_buscar_regexp_barcode_product(regexp_barcode);
 
         // comprobar si se encontró un producto con ese código de barras:
-        if (res_busqueda && res_busqueda.hasOwnProperty('code')) {
+        if (res_busqueda &&
+            res_busqueda.hasOwnProperty('code') &&
+            res_busqueda['code'].match(regexp_barcode)) {
             json_res = {
                 'code': res_busqueda.code,
                 'product': componer_producto_json(res_busqueda),
@@ -250,15 +254,22 @@ async function api_get_food_barcode_json(req, res, next) {
                 wlog.info(`Accediendo a servicio externo: ${url_peticion}`);
 
                 const respuesta = await axios.get(url_peticion);
-                json_res = respuesta.data;
-                // TODO: ¿insertar el dato en la bd si json_res.status=1?
-                wlog.silly(json_res);
+                wlog.silly('RESPUESTA EXTERNA:');
+                wlog.silly(JSON.stringify(respuesta.data));
+                if (respuesta &&
+                    respuesta.hasOwnProperty('code') &&
+                    respuesta['code'].match(regexp_barcode)) {
+                    json_res = respuesta.data;
+                    // TODO: ¿insertar el dato en la bd si json_res.status=1?
+                } else {
+                    wlog.info('Devolviendo objeto no encontrado en servicio externo');
+                    json_res = object_not_found_json(barcode, 'product');
+                }                
             } else {
                 wlog.info('Devolviendo objeto no encontrado');
                 json_res = object_not_found_json(barcode, 'product');
             }
         }
-
     } catch (error) {
         json_res = error_json(error);
         wlog.error(json_res);
@@ -297,7 +308,8 @@ async function api_get_taxonomia_json(req, res, next) {
         'languages',
         'nova_groups',
         'nutrient_levels',
-        'states'];
+        'states',
+        'sustainability'];
 
     let json_path = '';
 
@@ -540,8 +552,8 @@ let sesiones = {};
    Devuelve:
    un objeto con la información que se almacena de la sesión
 */
-function resultadoSesion(json_res, usuario) {
-    wlog.silly(`resultadoSesion(${JSON.stringify(json_res)}, ${JSON.stringify(usuario)})`);
+function respuestaResultadoSesion(json_res, usuario) {
+    wlog.silly(`respuestaResultadoSesion(${JSON.stringify(json_res)}, ${JSON.stringify(usuario)})`);
     const res = { ...json_res };
     // Añadir la sesion
     const new_sesion = ponerSesion(usuario.username);
@@ -552,7 +564,7 @@ function resultadoSesion(json_res, usuario) {
     res['vot'] = res.vot;
     
     return res;
-} // resultadoSesion
+} // respuestaResultadoSesion
 
 /* Función que añade una sesión para el usuario 'username'.
 
@@ -629,14 +641,16 @@ async function user_login(req, res, next) {
     let json_res = { status: 1, status_verbose: 'OK' };
     
     try {
-        const result = await bd_buscar_usuario(username);
+        const result = await bd_usuario_buscar(username);
         wlog.silly(`resultado: ${JSON.stringify(result)}`);
         if (result) {
             // se ha encontrado el usuario: comprobar que es correcto
             if (bcrypt.compareSync(password, result.hash)) {
                 wlog.silly(`Contraseña correcta para ${username}`);
                 // nueva sesion
-                json_res = resultadoSesion(json_res, result);
+                json_res = respuestaResultadoSesion(json_res, result);
+                json_res['conf'] = result.conf;
+                json_res['vot'] = result.vot;
                 wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
             } else {
                 wlog.info(`El usuario ${username} no tiene la clave indicada`);
@@ -691,7 +705,7 @@ async function user_newuser(req, res, next) {
         } else {
             wlog.silly("Comprobando...");
             // comprobar que no existe
-            const usu_check = await bd_buscar_usuario(username);
+            const usu_check = await bd_usuario_buscar(username);
             wlog.silly(JSON.stringify(usu_check));
             if (usu_check) {
                 wlog.info(`El usuario ${username} ya existe`);
@@ -701,13 +715,13 @@ async function user_newuser(req, res, next) {
                 wlog.info("Comprobaciones correctas: Dando de alta");            
                 const salt = bcrypt.genSaltSync(16);
                 const hash = bcrypt.hashSync(password, salt);
-                const res_alta = await bd_nuevo_usuario(username, hash, salt, getUnixTime());
+                const res_alta = await bd_usuario_nuevo(username, hash, salt, getUnixTime());
                 wlog.info("Resultado del alta:");
                 if (res_alta) {
                     wlog.info("Res alta OK");
                     wlog.silly("Creando sesion");
 
-                    json_res = resultadoSesion(json_res, {});
+                    json_res = respuestaResultadoSesion(json_res, { username: username });
                     wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
                 } else {
                     wlog.info("Res alta FAILED");
@@ -762,6 +776,95 @@ async function user_logout(req, res, next) {
     res.send(json_res);
 }; // async user_logout
 
+// Función del API de usuarios del servidor.
+//
+// /user/save
+//
+// Al servidor se le pasa como parámetro el nombre de usuario,
+// el identificador de sesion y tiempo de creación de sesión.
+// También se le pasa la configuración a salvar
+//
+// Comprueba si existen en el gestor de sesiones BD y si es así guarda
+// en la BD la configuración
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function user_save(req, res, next) {
+    wlog.silly(`api_save(${JSON.stringify(req.body)})`);
+
+    const username = req.body.un,
+          session_id = req.body.id,
+          timestamp_li = req.body.ts,
+          conf = req.body.conf;
+
+    let json_res = { status: 1 };
+    
+    try {
+        if (username && session_id) {
+            const session = getSesion(session_id);
+            if (!session) {
+                json_res['status'] = 0;
+                json_res['status_verbose'] = `Sesión ${session_id} no encontrada`;
+            } else if ((session.un === username) && (session.ts = timestamp_li)) {
+                const res = await bd_usuario_salvar(username, conf);
+                if (!(res.result.ok == 1)) {
+                    json_res['status'] = 0;
+                    json_res['status_verbose'] = `No se pudo salvar`;
+                }
+            } else {
+                json_res['status'] = 0;
+                json_res['status_verbose'] = `Sesión ${session_id} no coincidente`;
+            }
+        } else {
+            json_res['status'] = 0;
+            json_res['status_verbose'] = 'Datos de sesión incorrectos';
+        }
+    } catch(error) {
+        json_res = error_json(error);
+    }
+
+    res.send(json_res);
+}; // async user_logout
+
+// Función del API de usuarios del servidor.
+//
+// /user/vote/:code/:sustainability/:value
+//
+// Al servidor se le pasa como parámetros el código del producto,
+// el valor de sostenibilidad a votar y el valor que se le asignará.
+//
+// Como dato POST se le pasa el JSON que identifica la session
+//
+// Comprueba si existe una sessión como la que se ha pasado.
+//
+// Actualiza las votaciones del usuario para ese código, valor de sostenibilidad.
+//
+// Comprueba si existe el producto y actualiza los datos de sostenibilidad
+// agregados de producto. Si el usuario ya había votado ese codigo/sostenibilidad
+// "desagrega" el valor y lo añade correctamente.
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function user_vote(req, res, next) {
+    wlog.silly(`api_vote [${JSON.stringify(req.body)}]`);
+
+    const username = req.body.un,
+          session_id = req.body.id,
+          timestamp_li = req.body.ts;
+
+    const code = req.params.code,
+          sustainability = req.params.sustainability,
+          value = req.params.value;
+    
+    const json_res = { code: code, sus: sustainability, value: value, username: username, session_id: session_id, timestamp_li: timestamp_li};
+    
+    res.send(json_res);
+}; // async user_vote
+
 /* -------------------------------------------------------------------
    -------            CONFIGURACIÓN DEL SERVIDOR               ------- 
    ------------------------------------------------------------------- */
@@ -814,7 +917,8 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.get('/api/v0/product/:barcode.json', cors(), api_get_food_barcode_json);
 
     // URL API de valores de "taxonomías".
-    aplicacion.get("/data/taxonomies/:taxonomia.json", api_get_taxonomia_json);
+    aplicacion.options("/data/taxonomies/:taxonomia.json", cors());
+    aplicacion.get("/data/taxonomies/:taxonomia.json", cors(), api_get_taxonomia_json);
     // otra forma (creo que peor por que tiene menos comprobaciones) de hacerlo:
     //  aplicacion.use("/data/taxonomies", express.static(`${PATH_ESTATICO}/tax`));
 
@@ -837,7 +941,12 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.post("/user/new", cors(), user_newuser);
     aplicacion.options('/user/logout', cors());
     aplicacion.post("/user/logout", cors(), user_logout);
+    aplicacion.options('/user/save', cors());
+    aplicacion.post("/user/save", cors(), user_save);
 
+    // URL votación
+    aplicacion.options('/user/vote/:code/:sustainability/:value', cors())
+    aplicacion.post('/user/vote/:code/:sustainability/:value', cors(), user_vote)
     
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {

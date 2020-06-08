@@ -12,7 +12,7 @@
 const conf = {
     // parámetros de escuchador del servicio web
     PUERTO_SERVIDOR: 8000,
-    INTERFAZ_SERVIDOR: 'localhost',
+    INTERFAZ_SERVIDOR: '0.0.0.0',
 
     TAMANO_PAGINA: 10,
     

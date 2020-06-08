@@ -13,6 +13,7 @@
 //   Historia: + 05 May 2020 - Primera Versión
 //             + 24 May 2020 - Búsqueda de usuarios
 //             + 25 May 2020 - Creación de usuarios
+//             + 01 Jun 2020 - Datos sostenibilidad
 // *******************************************************************
 'use strict';
 
@@ -32,7 +33,9 @@ const {
     FILTRO_BUSQUEDA_ADICIONAL,
 
     BD_USUARIOS,
-    COLECCION_USUARIOS
+    COLECCION_USUARIOS,
+
+    BD_WRITE_CONCERN
 } = require('./configuracion.bd.js');
 
 const MONGO = require('mongodb').MongoClient;
@@ -111,7 +114,7 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
     wlog.silly(`query: ${JSON.stringify(query_busqueda)}`);
     const result = await col_productos.findOne(query_busqueda); //.sort(opciones.sort_by);
 
-    return result;
+    return sostenibilidad_producto(result);
 }; // bd_buscar_regexp_barcode_product
 
 /*
@@ -226,8 +229,8 @@ async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
   Devuelve:
   - El objeto usuario encontrado
 */
-async function bd_buscar_usuario(usuario) {
-    wlog.silly(`bd_buscar_usuario(${usuario})`);
+async function bd_usuario_buscar(usuario) {
+    wlog.silly(`bd_usuario_buscar(${usuario})`);
 
     wlog.silly(`${JSON.stringify(usuario)}`);
     const c = await MONGO_U.connect(URL_MONGODB);
@@ -241,7 +244,7 @@ async function bd_buscar_usuario(usuario) {
     let result = await col_usuarios.findOne(query);
     
     return result;
-}; // async bd_buscar_usuario
+}; // async bd_usuario_buscar
 
 /*
   Función para crear un nuevo usuario cuyo username sea usuario.
@@ -257,8 +260,8 @@ async function bd_buscar_usuario(usuario) {
   Devuelve:
   - El objeto usuario encontrado
 */
-async function bd_nuevo_usuario(usuario, hash, salt, timestamp) {
-    wlog.silly(`bd_nuevo_usuario(${usuario},...)`);
+async function bd_usuario_nuevo(usuario, hash, salt, timestamp) {
+    wlog.silly(`bd_usuario_nuevo(${usuario},...)`);
 
     const c = await MONGO_U.connect(URL_MONGODB);
     const db = await c.db(BD_USUARIOS);
@@ -275,19 +278,103 @@ async function bd_nuevo_usuario(usuario, hash, salt, timestamp) {
     nuevo_usuario['hash'] = hash;
     nuevo_usuario['salt'] = salt; // guardamos la sal para cocinar más :p ??
     wlog.silly(JSON.stringify(nuevo_usuario));
-    let result = await col_usuarios.insertOne(nuevo_usuario, { j: true });
+    let result = await col_usuarios.insertOne(nuevo_usuario, BD_WRITE_CONCERN);
 
     if (result) {
         delete result['hash'];
         delete result['salt'];
     }
     return result;
-}; // async bd_nuevo_usuario
+}; // async bd_usuario_nuevo
+
+/*
+  Función para salvar los datos del usuario 'username'
+
+  Los datos se actualizarán, manteniendo los que no se cambien
+
+  Parámetros:
+  - usuario: nombre de usuario
+  - conf: datos a salvar
+  Devuelve:
+  - El objeto usuario encontrado
+*/
+async function bd_usuario_salvar(usuario, conf) {
+    wlog.silly(`bd_usuario_salvar(${usuario},${JSON.stringify(conf)})`);
+
+    const usuDoc = await bd_usuario_buscar(usuario);
+
+    if (usuDoc) {
+        const c = await MONGO_U.connect(URL_MONGODB);
+        const db = await c.db(BD_USUARIOS);
+        const col_usuarios = await db.collection(COLECCION_USUARIOS);
+
+        const res = await col_usuarios.updateOne({ "_id": usuario}, { $set: { "conf": conf } }, BD_WRITE_CONCERN );
+        return res;
+    } else {
+        return null;
+    }
+}
+
+const datos_sostenibilidad = {
+    'en:sustainability_level': 2.5,  // media de los datos de sostenibilidad de un producto
+    'en:suitable-packaging_ok': 0,
+    'en:suitable-packaging_ns': 0,
+    'en:suitable-packaging_nok': 0,
+    'en:suitable-size_ok': 0,
+    'en:suitable-size_ns': 0,
+    'en:suitable-size_nok': 0,
+    'en:palm-oil_ok': 0,
+    'en:palm-oil_ns': 0,
+    'en:palm-oil_nok': 0,
+    'en:manufacturing_ok': 0,
+    'en:manufacturing_ns': 0,
+    'en:manufacturing_nok': 0,
+    'en:transport_ok': 0,
+    'en:transport_ns': 0,
+    'en:transport_nok': 0,
+    'en:storage_ok': 0,
+    'en:storage_ns': 0,
+    'en:storage_nok': 0 
+}
+
+// toma tres valores: false, true, null
+const datos_sostenibilidad_usuario_producto = {
+    'en:suitable-packaging': null,
+    'en:suitable-size': null,
+    'en:palm-oil': null,
+    'en:manufacturing': null,
+    'en:transport': null,
+    'en:storage': null
+}
+
+/*
+  Función para añadir (si no existen) datos sobre la sostenibilidad
+  de un producto.
+
+  Parámetros:
+  - producto: un objeto (representación JSON) de un producto para el que se incluirán
+  los datos
+  Devuelve:
+  - El mismo objeto si ya contiene datos de sostenibilidad o uno modificado que incluya los
+  datos iniciales
+*/
+async function sostenibilidad_producto(producto) {
+    wlog.silly(`sustainability_producto(${producto && producto._id})`);
+    let res = {...producto};
+    if (producto && producto.code) {
+        if (!(producto.sustainability)) {
+            res['sustainability'] = datos_sostenibilidad;
+        }
+    }
+    
+    return res;
+}
 
 exports.bd_buscar_regexp_barcode_product = bd_buscar_regexp_barcode_product;
 exports.bd_get_valores_facets = bd_get_valores_facets;
 exports.bd_buscar_category_products = bd_buscar_category_products;
 exports.bd_buscar_codes = bd_buscar_codes;
 
-exports.bd_buscar_usuario = bd_buscar_usuario;
-exports.bd_nuevo_usuario = bd_nuevo_usuario;
+exports.bd_usuario_buscar = bd_usuario_buscar;
+exports.bd_usuario_nuevo = bd_usuario_nuevo;
+exports.bd_usuario_salvar = bd_usuario_salvar;
