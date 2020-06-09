@@ -284,6 +284,31 @@ async function bd_usuario_nuevo(usuario, hash, salt, timestamp) {
 }; // async bd_usuario_nuevo
 
 /*
+  Función para borrar un usuario existente
+
+  Se devuelve el resultado de la operación MongoDB
+
+  Parámetros:
+  - usuario: nombre de usuario
+  Devuelve:
+  - El resultado de la operación MongoDB
+*/
+async function bd_usuario_borrar(usuario) {
+    wlog.silly(`bd_usuario_borrar(${usuario})`);
+
+    const c = await MONGO_U.connect(URL_MONGODB);
+    const db = await c.db(BD_USUARIOS);
+    const col_usuarios = await db.collection(COLECCION_USUARIOS);
+
+    const del_query = { };
+    del_query['username'] = usuario;
+    
+    const result = await col_usuarios.deleteOne(del_query, BD_WRITE_CONCERN);
+
+    return result;
+}; // async bd_usuario_nuevo
+
+/*
   Función para salvar los datos del usuario 'username'
 
   Los datos se actualizarán, manteniendo los que no se cambien
@@ -455,5 +480,6 @@ exports.bd_buscar_codes = bd_buscar_codes;
 
 exports.bd_usuario_buscar = bd_usuario_buscar;
 exports.bd_usuario_nuevo = bd_usuario_nuevo;
+exports.bd_usuario_borrar = bd_usuario_borrar;
 exports.bd_usuario_salvar = bd_usuario_salvar;
 exports.bd_usuario_votar = bd_usuario_votar;

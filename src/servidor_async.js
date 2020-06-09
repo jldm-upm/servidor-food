@@ -73,6 +73,7 @@ const {
 
     bd_usuario_buscar,
     bd_usuario_nuevo,
+    bd_usuario_borrar,
     bd_usuario_salvar,
     bd_usuario_votar
 } = require('./bd_productos.js');
@@ -690,7 +691,7 @@ async function user_newuser(req, res, next) {
         if (!(username && password && accepted &&
               (username.length > 0) &&
               (password.length > 7))) {
-            
+            wlog.error(JSON.stringify(json_res));            
             json_res['status'] = 0;
             json_res['status_verbose'] = 'Problemas con los datos recibidos';
         } else {
@@ -698,16 +699,16 @@ async function user_newuser(req, res, next) {
             const usu_check = await bd_usuario_buscar(username);
 
             if (usu_check) {
-                wlog.info(`El usuario ${username} ya existe`);
                 json_res['status'] = 0;
                 json_res['status_verbose'] = 'El usuario ya existe';
+                wlog.info(JSON.stringify(json_res));
             }  else {
                 wlog.info("Comprobaciones correctas: Dando de alta");            
                 const salt = bcrypt.genSaltSync(16);
                 const hash = bcrypt.hashSync(password, salt);
                 const res_alta = await bd_usuario_nuevo(username, hash, salt, getUnixTime());
                 wlog.info("Resultado del alta:");
-                if (res_alta) {
+                if (res_alta && (res_alta.result.ok == 1)) {
                     wlog.info("Res alta OK");
                     wlog.silly("Creando sesion");
 
@@ -717,6 +718,77 @@ async function user_newuser(req, res, next) {
                     wlog.error("Res alta FAILED");
                     json_res['status'] = 0;
                     res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
+                }
+            }
+        }
+    } catch(error) {
+        json_res = error_json(error);
+    }
+
+    res.send(json_res);
+}; // async user_newuser
+
+// Función del API de usuarios del servidor.
+//
+// /user/delete
+//
+// Al servidor se le pasa como parámetros post el nombre de usuario
+// (username) y los datos de sesión.
+//
+// Comprueba si existe un usuario en la BD y si no es así o hay algún otro problema
+// para crear el usuario devuelve un JSON con 'status=0'.
+//
+// Si existe elimina al usuario de la BD. Esto incluye sus
+// votaciones. Pero NO el agregado de sus votaciones.
+//
+// Parámetros:
+//  - req: petición del cliente
+//  - res: respuesta del servidor
+//  - next: callback después de tratar esta petición
+async function user_deluser(req, res, next) {
+    wlog.silly('api_deluser');
+
+    const username = req.body.un,
+          session_id = req.body.id,
+          timestamp_li = req.body.ts;
+    
+    let json_res = { status: 1 };
+    let result = null;
+    
+    try {
+        if (!(username && session_id && timestamp_li)) {
+            json_res['status'] = 0;
+            json_res['status_verbose'] = 'Problemas con los datos recibidos';
+            wlog.error(JSON.stringify(json_res));
+        } else {
+            // comprobar que el usuario tiene sesión iniciada.
+            const sesion = getSesion(session_id);
+            if (!sesion) {
+                json_res['status'] = 0;
+                json_res['status_verbose'] = 'Sesión no iniciada';
+                wlog.error(JSON.stringify(json_res));                
+            } else {
+                const usu_check = await bd_usuario_buscar(username);
+
+                if (!(usu_check && (usu_check.username = username))) {
+                    json_res['status'] = 0;
+                    json_res['status_verbose'] = 'El usuario no existe';
+                    wlog.info(JSON.stringify(json_res));
+                }  else {
+                    wlog.info("Comprobaciones correctas: Dando de baja");            
+                    const res_baja = await bd_usuario_borrar(username);
+                    wlog.info("Resultado de la baja:");
+                    if (res_baja && res_baja.result.ok == 1) {
+                        wlog.info("Res alta OK");
+                        wlog.silly("Borrando sesion");
+
+                        json_res = {...borrarSesion(session_id), ...json_res};
+                        wlog.info(`Usuario ${username} ha cerrado sesion`);
+                    } else {
+                        wlog.error("Res baja FAILED");
+                        json_res['status'] = 0;
+                        res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
+                    }
                 }
             }
         }
