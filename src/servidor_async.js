@@ -945,7 +945,8 @@ function configurar(aplicacion, clienteMongo) {
     //  aplicacion.use("/data/taxonomies", express.static(`${PATH_ESTATICO}/tax`));
 
     // URL API de valores de "facets".
-    aplicacion.get("/:facet.json", api_get_facet_json);
+    aplicacion.options("/data/taxonomies/:taxonomia.json", cors());
+    aplicacion.get("/:facet.json", cors(), api_get_facet_json);
 
     // URL API para obtener productos que pertenecen a una categoria de un facet
     aplicacion.get("/:category/:facet.json", api_get_category_products_json);
