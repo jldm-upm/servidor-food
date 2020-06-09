@@ -120,7 +120,7 @@ const nutricional_tipos = [
 function siempre(valor) {
     wlog.silly(`search_querystring.js:siempre(${valor})`);
     return (() => {
-        wlog.silly(`search_querystring.js:siempre(${valor}):()`);
+        // wlog.silly(`search_querystring.js:siempre(${valor}):()`);
         return valor;
     });
 }; // siempre
@@ -135,7 +135,7 @@ function siempre(valor) {
 function contiene(array) {
     wlog.silly(`search_querystring.js:contiene(${array})`);
     return (val) => {
-        wlog.silly(`search_querystring.js:contiene(${array}):(${val})`);
+        // wlog.silly(`search_querystring.js:contiene(${array}):(${val})`);
         return (array.indexOf(val) >= 0);
     };
 };
@@ -263,7 +263,7 @@ function filtro_comparar(tipo, op, val) {
 function gen_filtro_contiene(prop_array) {
     wlog.silly(`search_querystring.js:gen_filtro_contiene(${prop_array})`);
     return (tipo) => {
-        wlog.silly(`search_querystring.js:gen_filtro_contiene(${prop_array}):${tipo}`);
+        // wlog.silly(`search_querystring.js:gen_filtro_contiene(${prop_array}):${tipo}`);
         let res = {};
 
         if (tipo.startsWith('indifferent')) {
@@ -309,11 +309,11 @@ function func_operador(query, prop) {
     // por último obtener el valor del operando...
     let operando = query[this['operando_'] + grupo];
 
-    wlog.silly(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}`);
+    // wlog.silly(`func_tagtype con grupo=${grupo}, tipo=${tipo}, operador=${operador}`);
 
     let res = this['filtro'](tipo, operador, operando);
 
-    wlog.silly(`func_tagtype = (${prop})=${res}`);
+    // wlog.silly(`func_tagtype = (${prop})=${res}`);
     return res;
 };
 
@@ -329,7 +329,7 @@ function func_value(query, prop) {
     wlog.silly(`search_querystring.js:func_value(${query},${prop})`);
     let res = this['filtro'](tipo, operador, operando);
 
-    wlog.silly(`func_value = (${prop})=${res}`);
+    // wlog.silly(`func_value = (${prop})=${res}`);
     return res;
 }
 

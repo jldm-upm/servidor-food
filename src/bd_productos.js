@@ -111,7 +111,6 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
 
     const query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL, code: { $regex: regexp_barcode, $options: "$i" } };
 
-    wlog.silly(`query: ${JSON.stringify(query_busqueda)}`);
     const result = await col_productos.findOne(query_busqueda); //.sort(opciones.sort_by);
 
     return sostenibilidad_producto(result);
@@ -185,8 +184,6 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
 
         let query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL };
         query_busqueda[facet_tags] = valor;
-        wlog.silly(JSON.stringify(query_busqueda));
-        wlog.silly(`QUERY: ${JSON.stringify(query_busqueda)}`);
         result = await col_productos.find(query_busqueda).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
 
         result = result.filter(val => !!val); // eliminar valores nulos
@@ -232,7 +229,6 @@ async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
 async function bd_usuario_buscar(usuario) {
     wlog.silly(`bd_usuario_buscar(${usuario})`);
 
-    wlog.silly(`${JSON.stringify(usuario)}`);
     const c = await MONGO_U.connect(URL_MONGODB);
     const db = await c.db(BD_USUARIOS);
 
@@ -240,7 +236,7 @@ async function bd_usuario_buscar(usuario) {
 
     const query = {};
     query['username'] = usuario;
-    wlog.silly(JSON.stringify(query));
+
     let result = await col_usuarios.findOne(query);
     
     return result;
@@ -277,7 +273,7 @@ async function bd_usuario_nuevo(usuario, hash, salt, timestamp) {
     nuevo_usuario['vot'] = {};
     nuevo_usuario['hash'] = hash;
     nuevo_usuario['salt'] = salt; // guardamos la sal para cocinar más :p ??
-    wlog.silly(JSON.stringify(nuevo_usuario));
+
     let result = await col_usuarios.insertOne(nuevo_usuario, BD_WRITE_CONCERN);
 
     if (result) {
@@ -313,28 +309,107 @@ async function bd_usuario_salvar(usuario, conf) {
     } else {
         return null;
     }
-}
+} // bd_usuario_salvar
+
+
+async function bd_aux_usuario_votar(usuario, code, sust, value) {
+    wlog.silly(`bd_aux_usuario_votar(${usuario}, ${code}, ${sust}, ${value})`);
+    const usuDoc = await bd_usuario_buscar(usuario);
+    
+    // actualizar los datos de usuario
+    const c_usu = await MONGO_U.connect(URL_MONGODB);
+    const db_usu = await c_usu.db(BD_USUARIOS);
+    const col_usuarios = await db_usu.collection(COLECCION_USUARIOS);
+
+    let old_value_usu = undefined;
+    const field = `vot.${code}.${sust}`;
+
+    if (usuDoc.vot[code]) {
+        old_value_usu = usuDoc.vot[code][sust];
+    }
+    const query_aux = { };
+    query_aux[field] = value;
+    const query = { $set: query_aux };
+    
+    const res_usu = await col_usuarios.updateOne({ "_id": usuario}, query, BD_WRITE_CONCERN );
+    res_usu['doc'] = usuDoc;
+    res_usu['old_value'] = old_value_usu;
+
+    return res_usu;
+} // bd_aux_usuario_votar
+
+async function bd_aux_producto_votar(code, sust, valor, old_value) {
+    const c_prod = await MONGO.connect(URL_MONGODB);
+    const db_prod = await c_prod.db(BD_PRODUCTOS);
+    const col_productos = await db_prod.collection(COLECCION_PRODUCTOS);
+
+    const producto = await bd_buscar_regexp_barcode_product(code);
+    
+    const p_field = `sustainability.${sust}_${valor}`;
+    
+    const p_field_old = `sustainability.${sust}_${old_value}`;
+    const p_field_old_inc = old_value === undefined ? 0 : -1;
+
+    const query_aux = { };
+    query_aux[p_field] = 1;
+    query_aux[p_field_old] = p_field_old_inc;
+    const query = { $inc: query_aux };
+    
+    const res_prod = await col_productos.updateOne({ "_id": producto._id }, query, BD_WRITE_CONCERN );
+
+    res_prod['doc'] = producto;
+
+    return res_prod;
+} // bd_aux_producto_votar
+
+/*
+  Función para votar el valor de sostenibilidad de un producto
+
+  Los datos se actualizarán en el campo vot del usuario.
+
+  También se agregarán a los valores de sostenibilidad del producto.
+  Deshaciendo los cambios hechos si ya se hubiera votado
+
+  Parámetros:
+  - usuario: nombre de usuario
+  - code: código del producto que se votará
+  - sustainability: propiedad de sostenibilidad votada
+  - value: valor dado: true, null o false
+  Devuelve:
+  - El objeto resultado de actualizar los datos: {'usu': res_usu, 'prod': res_prod}
+*/
+async function bd_usuario_votar(usuario, code, sust, value) {
+    wlog.silly(`bd_usuario_votar(${usuario},${code},${sust},${value})`);
+        
+    const res_usu = await bd_aux_usuario_votar(usuario, code, sust, value);
+    console.warn(JSON.stringify(res_usu));
+    const res_prod = await bd_aux_producto_votar(code, sust, value, res_usu.old_value);
+    console.warn(JSON.stringify(res_prod));
+    const res = {'usu': res_usu, 'prod': res_prod};
+
+    return res;
+} // bd_usuario_votar
 
 const datos_sostenibilidad = {
     'en:sustainability_level': 2.5,  // media de los datos de sostenibilidad de un producto
-    'en:suitable-packaging_ok': 0,
-    'en:suitable-packaging_ns': 0,
-    'en:suitable-packaging_nok': 0,
-    'en:suitable-size_ok': 0,
-    'en:suitable-size_ns': 0,
-    'en:suitable-size_nok': 0,
-    'en:palm-oil_ok': 0,
-    'en:palm-oil_ns': 0,
-    'en:palm-oil_nok': 0,
-    'en:manufacturing_ok': 0,
-    'en:manufacturing_ns': 0,
-    'en:manufacturing_nok': 0,
-    'en:transport_ok': 0,
-    'en:transport_ns': 0,
-    'en:transport_nok': 0,
-    'en:storage_ok': 0,
-    'en:storage_ns': 0,
-    'en:storage_nok': 0 
+    'en:suitable-packaging_true': 0,
+    'en:suitable-packaging_undefined': 0,
+    'en:suitable-packaging_false': 0,
+    'en:suitable-size_true': 0,
+    'en:suitable-size_undefined': 0,
+    'en:suitable-size_false': 0,
+    'en:palm-oil_true': 0,
+    'en:palm-oil_undefined': 0,
+    'en:palm-oil_false': 0,
+    'en:manufacturing_true': 0,
+    'en:manufacturing_undefined': 0,
+    'en:manufacturing_false': 0,
+    'en:transport_true': 0,
+    'en:transport_undefined': 0,
+    'en:transport_false': 0,
+    'en:storage_true': 0,
+    'en:storage_undefined': 0,
+    'en:storage_false': 0 
 }
 
 // toma tres valores: false, true, null
@@ -359,11 +434,14 @@ const datos_sostenibilidad_usuario_producto = {
   datos iniciales
 */
 async function sostenibilidad_producto(producto) {
-    wlog.silly(`sustainability_producto(${producto && producto._id})`);
+    wlog.silly(`sostenibilidad_producto(${producto ? producto._id : null})`);
     let res = {...producto};
     if (producto && producto.code) {
         if (!(producto.sustainability)) {
             res['sustainability'] = datos_sostenibilidad;
+        } else {
+            // completar los datos
+            res['sustainability'] = { ...datos_sostenibilidad, ...res.sustainability};
         }
     }
     
@@ -378,3 +456,4 @@ exports.bd_buscar_codes = bd_buscar_codes;
 exports.bd_usuario_buscar = bd_usuario_buscar;
 exports.bd_usuario_nuevo = bd_usuario_nuevo;
 exports.bd_usuario_salvar = bd_usuario_salvar;
+exports.bd_usuario_votar = bd_usuario_votar;

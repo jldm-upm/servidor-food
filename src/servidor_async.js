@@ -73,7 +73,8 @@ const {
 
     bd_usuario_buscar,
     bd_usuario_nuevo,
-    bd_usuario_salvar
+    bd_usuario_salvar,
+    bd_usuario_votar
 } = require('./bd_productos.js');
 
 /* -------------------------------------------------------------------
@@ -123,7 +124,7 @@ function componer_producto_json(producto_json, sostenibilidad_usuario) {
 // Devuelve:
 //  json_not_found + {'objeto': codigo}
 function object_not_found_json(codigo, objeto) {
-    wlog.silly('object_not_found_json');
+    wlog.silly(`object_not_found_json(${codigo},${objeto})`);
     //let res = {};
     //Object.assign(res, JSON_NOT_FOUND);
     let res = { ...JSON_NOT_FOUND };
@@ -254,13 +255,12 @@ async function api_get_food_barcode_json(req, res, next) {
                 wlog.info(`Accediendo a servicio externo: ${url_peticion}`);
 
                 const respuesta = await axios.get(url_peticion);
-                wlog.silly('RESPUESTA EXTERNA:');
-                wlog.silly(JSON.stringify(respuesta.data));
+                wlog.info('RESPUESTA EXTERNA:');
                 if (respuesta &&
                     respuesta.hasOwnProperty('code') &&
                     respuesta['code'].match(regexp_barcode)) {
                     json_res = respuesta.data;
-                    // TODO: ¿insertar el dato en la bd si json_res.status=1?
+                    // TODO: ¿insert o upsert el dato en la bd si json_res.status=1?
                 } else {
                     wlog.info('Devolviendo objeto no encontrado en servicio externo');
                     json_res = object_not_found_json(barcode, 'product');
@@ -272,7 +272,6 @@ async function api_get_food_barcode_json(req, res, next) {
         }
     } catch (error) {
         json_res = error_json(error);
-        wlog.error(json_res);
     }
     res.send(json_res);
 }; // async api_get_food_barcode_json
@@ -360,12 +359,11 @@ async function api_get_facet_json(req, res, next) {
         if (result && (result.length > 0)) {
             json_res = { 'count': result.length, 'tags': result, 'status': 1 };
         } else {
-            wlog.info(`facet ${facet} not found`);
             json_res = { 'count': 0, 'tags': null, 'status': 0 };
+            wlog.error(JSON.stringify(json_res));
         }
     } catch (error) {
         json_res = error_json(error);
-        wlog.error(json_res);
     };
 
     res.send(json_res);
@@ -419,12 +417,11 @@ async function api_get_category_n_products_json(req, res, next) {
             json_res['status'] = 1;
             json_res['opciones'] = opciones;
         } else {
-            wlog.info(`Not products in category ${exp_category} for facet ${facet} found`);
             json_res = { 'count': 0, 'tags': null, 'status': 0, 'opciones': opciones };
+            wlog.error(JSON.stringify(json_res));
         }
     } catch (err) {
         json_res = error_json(err);
-        wlog.error(json_res);
     };
     res.send(json_res);
 }; // async api_get_category_n_products_json
@@ -469,12 +466,11 @@ async function api_get_category_products_json(req, res, next) {
             json_res['status'] = 1;
             json_res['opciones'] = opciones;
         } else {
-            wlog.info(`Not products in category ${exp_category} for facet ${facet} found`);
             json_res = { 'count': 0, 'tags': null, 'status': 0, 'opciones': opciones };
+            wlog.error(JSON.stringify(json_res));
         }
     } catch (err) {
         json_res = error_json(err);
-        wlog.error(json_res);
     };
     res.send(json_res);
 }; // async api_get_category_products_json
@@ -511,7 +507,6 @@ async function api_search_products_json(req, res, next) {
         // //      wlog.silly('        ' + JSON.stringify(val));
         //       result.push[result.length] = val;
         //     });
-        wlog.silly('            ' + result.length);
         if (result && (result.length > 0)) {
             json_res = { status: 1, status_verbose: 'search found' };
             json_res['count'] = result.length;
@@ -520,11 +515,10 @@ async function api_search_products_json(req, res, next) {
             json_res['opciones'] = opciones;
         } else {
             json_res = object_not_found_json(mongoDB_query, 'products');
-            wlog.info(json_res);
+            wlog.error(JSON.stringify(json_res));
         }
     } catch (error) {
         json_res = error_json(error);
-        wlog.error(json_res);
     };
 
     res.send(json_res);
@@ -545,9 +539,9 @@ let sesiones = {};
    Modifica la variable sesiones.
 
    Parámetros:
-     json_res: el objeto de respuesta que se modificará con los datos de sesión a devolver
+   json_res: el objeto de respuesta que se modificará con los datos de sesión a devolver
 
-     usuario: datos del usuario que están en la bd
+   usuario: datos del usuario que están en la bd
 
    Devuelve:
    un objeto con la información que se almacena de la sesión
@@ -581,7 +575,6 @@ function ponerSesion(username) {
     const timestamp = getUnixTime();
     const session_id = uuid.v5(username + timestamp, "36274658-96e5-4b80-8d2d-85d6d8ba50ef");
 
-    console.log(`SESIONES: ${sesiones}`);
     // borrar sesiones de este usuario
     for (let ses in sesiones) {
         if (ses.un == username) {
@@ -608,10 +601,9 @@ function borrarSesion(session_id) {
     wlog.silly(`borrarSesion(${session_id})`);
     const res = getSesion(session_id);
     if (res) {
-        wlog.silly('Sesión encontada');
         delete sesiones[session_id];
     } else {
-        wlog.silly('Sesión no econtrada');
+        wlog.error('Sesión no econtrada');
     }
     
     return res;
@@ -642,23 +634,22 @@ async function user_login(req, res, next) {
     
     try {
         const result = await bd_usuario_buscar(username);
-        wlog.silly(`resultado: ${JSON.stringify(result)}`);
         if (result) {
             // se ha encontrado el usuario: comprobar que es correcto
             if (bcrypt.compareSync(password, result.hash)) {
-                wlog.silly(`Contraseña correcta para ${username}`);
                 // nueva sesion
                 json_res = respuestaResultadoSesion(json_res, result);
                 json_res['conf'] = result.conf;
                 json_res['vot'] = result.vot;
                 wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
+                wlog.info(`LOGIN: ${JSON.stringify(json_res)}`);
             } else {
-                wlog.info(`El usuario ${username} no tiene la clave indicada`);
+                wlog.error(`El usuario ${username} no tiene la clave indicada`);
                 json_res = object_not_found_json(username,'password');
             }
         } else {
-            wlog.info(`No existe usuario: ${username}`);
             json_res = object_not_found_json(username, 'usuario');
+            wlog.error(JSON.stringify(json_res));
         }
     } catch(error) {
         json_res = error_json(error);
@@ -699,14 +690,13 @@ async function user_newuser(req, res, next) {
         if (!(username && password && accepted &&
               (username.length > 0) &&
               (password.length > 7))) {
-            wlog.silly("Datos incorrectos");
+            
             json_res['status'] = 0;
             json_res['status_verbose'] = 'Problemas con los datos recibidos';
         } else {
-            wlog.silly("Comprobando...");
             // comprobar que no existe
             const usu_check = await bd_usuario_buscar(username);
-            wlog.silly(JSON.stringify(usu_check));
+
             if (usu_check) {
                 wlog.info(`El usuario ${username} ya existe`);
                 json_res['status'] = 0;
@@ -724,7 +714,7 @@ async function user_newuser(req, res, next) {
                     json_res = respuestaResultadoSesion(json_res, { username: username });
                     wlog.info(`Usuario ${username} ha iniciado una nueva sesion`);
                 } else {
-                    wlog.info("Res alta FAILED");
+                    wlog.error("Res alta FAILED");
                     json_res['status'] = 0;
                     res['status_verbose'] = `Unspecified problem adding user to the DB: ${res_alta}`;
                 }
@@ -768,6 +758,7 @@ async function user_logout(req, res, next) {
         } else {
             json_res['status'] = 0;
             json_res['status_verbose'] = 'Datos de sesión incorrectos';
+            wlog.error(JSON.stringify(json_res));
         }
     } catch(error) {
         json_res = error_json(error);
@@ -816,10 +807,12 @@ async function user_save(req, res, next) {
             } else {
                 json_res['status'] = 0;
                 json_res['status_verbose'] = `Sesión ${session_id} no coincidente`;
+                wlog.error(JSON.stringify(json_res));
             }
         } else {
             json_res['status'] = 0;
             json_res['status_verbose'] = 'Datos de sesión incorrectos';
+            wlog.error(JSON.stringify(json_res));
         }
     } catch(error) {
         json_res = error_json(error);
@@ -859,8 +852,37 @@ async function user_vote(req, res, next) {
     const code = req.params.code,
           sustainability = req.params.sustainability,
           value = req.params.value;
+
+    let json_res = { status: 1, status_verbose: 'OK' };
     
-    const json_res = { code: code, sus: sustainability, value: value, username: username, session_id: session_id, timestamp_li: timestamp_li};
+    try {
+        // comprobar si la sesión es válida:
+        if (username && session_id) {
+            let session = getSesion(session_id);
+            if (session && (session.un === username)) {
+                // obtener los datos de este usuario
+                const res = await bd_usuario_votar(username, code, sustainability, value);
+
+                if ((res && ((res.usu.result.ok === 1) && (res.prod.result.ok === 1)))) {
+                    json_res['username'] = username;
+                    json_res['session'] = session;
+                    json_res['vot'] = res.usu.doc.vot;
+                    json_res['conf'] = res.usu.doc.conf;
+                } else {
+                    json_res = error_json('Error votando');
+                }
+            } else {
+                json_res = object_not_found_json(session_id, 'sesion');
+                wlog.error(JSON.stringify(json_res));
+            }
+        } else {
+            json_res['status'] = 0;
+            json_res['status_verbose'] = 'Datos de sesión incorrectos';
+            wlog.error(JSON.stringify(json_res));
+        }
+    } catch (error) {
+        json_res = error_json(error);
+    }
     
     res.send(json_res);
 }; // async user_vote
@@ -945,8 +967,8 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.post("/user/save", cors(), user_save);
 
     // URL votación
-    aplicacion.options('/user/vote/:code/:sustainability/:value', cors())
-    aplicacion.post('/user/vote/:code/:sustainability/:value', cors(), user_vote)
+    aplicacion.options('/user/vote/:code/:sustainability/:value', cors());
+    aplicacion.post('/user/vote/:code/:sustainability/:value', cors(), user_vote);
     
     // Se devuelve un documento JSON si no se encuentra una ruta coincidente.
     app.use(function(req, res, next) {
@@ -982,6 +1004,3 @@ curl -vv http://localhost:${PUERTO_SERVIDOR}/api/v0/product/737628064502.json\n`
 }
 
 module.exports.start = start;
-/*
-
- */
