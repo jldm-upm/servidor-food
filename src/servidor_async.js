@@ -15,6 +15,8 @@
 //             + 21 May 2020 - Peticiones al Servicio OFF
 //             + 23 May 2020 - sesiones: login/new usuarios
 //             + 28 May 2020 - sesiones: /user/save
+//             + 07 Jun 2020 - sostenibilidad: /user/vote
+//             + 08 Jun 2020 - usuarios: /user/delete
 // *******************************************************************
 'use strict';
 
@@ -1034,6 +1036,8 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.post("/user/login", cors(), user_login);
     aplicacion.options('/user/new', cors());
     aplicacion.post("/user/new", cors(), user_newuser);
+    aplicacion.options('/user/delete', cors());
+    aplicacion.post("/user/delete", cors(), user_deluser);
     aplicacion.options('/user/logout', cors());
     aplicacion.post("/user/logout", cors(), user_logout);
     aplicacion.options('/user/save', cors());
