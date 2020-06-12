@@ -912,6 +912,13 @@ async function user_save(req, res, next) {
 // agregados de producto. Si el usuario ya había votado ese codigo/sostenibilidad
 // "desagrega" el valor y lo añade correctamente.
 //
+// Devuelve un objeto que contiene los campos:
+//  - username: nombre de usuario que realizó la votación
+//  - session: objeto identificador de sessión utilizada por el usuario: { ts: tiempo de inicio de sesion, un: username, id: identificador de sesión}
+//  - vot: objeto registro actualizado de votaciones del usuario
+//  - conf: objeto con configuración del usuario
+//  - prod: objeto producto con el resultado de la votación actualizado
+//
 // Parámetros:
 //  - req: petición del cliente
 //  - res: respuesta del servidor
@@ -942,6 +949,7 @@ async function user_vote(req, res, next) {
                     json_res['session'] = session;
                     json_res['vot'] = res.usu.doc.vot;
                     json_res['conf'] = res.usu.doc.conf;
+                    json_res['prod'] = res.prod.doc;
                 } else {
                     json_res = error_json('Error votando');
                 }

@@ -153,14 +153,14 @@ async function bd_get_valores_facets(campo, opciones = OPCIONES_DEFECTO) {
     // result = await col_productos.aggregate(query).skip(skip).limit(page_size);
     // result = result.filter(val => !!val); // eliminar valores nulos
 
-    return result;
+    return result.map(sostenibilidad_producto);
 }; // bd_get_valores_facets
 
 /*
   Función para buscar todos los productos que contengan el valor perteneciente a una propiedad 
 
   Parámetros:
-  - category: la propiedad en la que se buscar los valores
+  - category: la propiedad en la que se buscan los valores
   - facet: el valor de la propiedad a buscar
   - [opciones]: opciones de búsqueda
   Devuelve:
@@ -337,8 +337,8 @@ async function bd_usuario_salvar(usuario, conf) {
 } // bd_usuario_salvar
 
 
-async function bd_aux_usuario_votar(usuario, code, sust, value) {
-    wlog.silly(`bd_aux_usuario_votar(${usuario}, ${code}, ${sust}, ${value})`);
+async function bd_aux_usuario_votar(usuario, code, sust, valor) {
+    wlog.silly(`bd_aux_usuario_votar(${usuario}, ${code}, ${sust}, ${valor})`);
     const usuDoc = await bd_usuario_buscar(usuario);
     
     // actualizar los datos de usuario
@@ -351,12 +351,15 @@ async function bd_aux_usuario_votar(usuario, code, sust, value) {
 
     if (usuDoc.vot[code]) {
         old_value_usu = usuDoc.vot[code][sust];
+    } else {
+        usuDoc[code] = { };
     }
+    usuDoc.vot[code][sust] = valor; // actualizar el valor que se devolverá
 
     let res_usu = {};
-    if (value !== old_value_usu) {
+    if (valor !== old_value_usu) {
         const query_aux = { };
-        query_aux[field] = value;
+        query_aux[field] = valor;
         const query = { $set: query_aux };
     
         res_usu = await col_usuarios.updateOne({ "_id": usuario}, query, BD_WRITE_CONCERN );
@@ -373,21 +376,30 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
     const col_productos = await db_prod.collection(COLECCION_PRODUCTOS);
 
     const producto = await bd_buscar_regexp_barcode_product(code);
-    
+
+    // campo de sostenibilidad actualizado
     const p_field = `sustainability.${sust}_${valor}`;
-    
+
+    // si ese usuario ya había votado ese campo: campo de sostenibilidad antiguo
     const p_field_old = `sustainability.${sust}_${old_value}`;
     const p_field_old_inc = -1;
+
+    // campo valoración global de sostenibilidad
+    const p_field_sustainability = `sustainability.sustainability_level`;
+    const p_field_sustainability_set = calcular_sostenibilidad (producto);
     
-    const query_aux = { };
-    query_aux[p_field] = 1;
-    query_aux[p_field_old] = p_field_old_inc;
-    const query = { $inc: query_aux };
+    // componer la consulta de actualización
+    const query_aux_inc = { };
+    query_aux_inc[p_field] = 1;
+    query_aux_inc[p_field_old] = p_field_old_inc;
+    const query_aux_set = { };
+    query_aux_set[p_field_sustainability] = p_field_sustainability_set;
+    const query = { $inc: query_aux_inc, $set: query_aux_set };
     wlog.silly(`bd_aux_producto_votar.query=${JSON.stringify(query)}`);
     const res_prod = await col_productos.updateOne({ "_id": producto._id }, query, BD_WRITE_CONCERN );
     
-    res_prod['doc'] = producto;
-    
+    res_prod['doc'] = await bd_buscar_regexp_barcode_product(code);
+
     return res_prod;
 } // bd_aux_producto_votar
 
@@ -442,7 +454,7 @@ const datos_sostenibilidad = {
     'en:storage_true': 0,
     'en:storage_undefined': 0,
     'en:storage_false': 0 
-}
+};
 
 // toma tres valores: false, true, null
 const datos_sostenibilidad_usuario_producto = {
@@ -452,7 +464,40 @@ const datos_sostenibilidad_usuario_producto = {
     'en:manufacturing': null,
     'en:transport': null,
     'en:storage': null
-}
+};
+
+/*
+  Función para calcular la valoración de sostenibilidad de un producto. Con los datos
+  de ese producto y las votaciones de sostenibilidad asociadas.
+
+  Parámetros:
+  - producto: un objeto (representación JSON) de un producto para el que se calculará el
+  valor de sostenibilidad.
+  Devuelve:
+  - Un valor que representa su valoración de sostenibilidad.
+*/
+function calcular_sostenibilidad (producto) {
+    let res_med = { };
+
+    if (producto.sustainability) {
+        // recorrer todos los parámetros de sostenibilidad
+        for (let k in Object.keys(datos_sostenibilidad_usuario_producto)) {
+            // valor 0 a 1.0 de la opinión de los usuarios sobre ese parámetro para ese producto:
+            let k_ok = producto.sustainability[k + "_true"] || 0;
+            let k_un = producto.sustainability[k + "_undefined"] || 0;
+            let k_mk = producto.sustainability[k + "_false"] || 0;
+
+            res_med[k] = k_ok / (1.0 * (k_ok + k_un + k_mk));
+        };  
+    }
+
+    const sum = Object.values(res_med).reduce((ini_acum, current, idx, array) => {
+        return ini_acum + current;
+    });
+
+    return sum / (1.0 * Object.values.length());
+    
+}  // calcular_sostenibilidad
 
 /*
   Función para añadir (si no existen) datos sobre la sostenibilidad
