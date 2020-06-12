@@ -5,6 +5,7 @@
     "main": "src/servidor_async.js",
     "scripts": {
         "test": "mocha",
+        "locs": "git ls-files -- './*' ':(exclude)*/tax/*' ':(exclude)package-lock.json' | xargs wc -l",
         "start": "node -e 'require (\"./src/servidor_async.js\").start()'"
     },
     "author": "José L. Domenech",
