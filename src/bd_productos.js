@@ -352,11 +352,15 @@ async function bd_aux_usuario_votar(usuario, code, sust, value) {
     if (usuDoc.vot[code]) {
         old_value_usu = usuDoc.vot[code][sust];
     }
-    const query_aux = { };
-    query_aux[field] = value;
-    const query = { $set: query_aux };
+
+    let res_usu = {};
+    if (value !== old_value_usu) {
+        const query_aux = { };
+        query_aux[field] = value;
+        const query = { $set: query_aux };
     
-    const res_usu = await col_usuarios.updateOne({ "_id": usuario}, query, BD_WRITE_CONCERN );
+        res_usu = await col_usuarios.updateOne({ "_id": usuario}, query, BD_WRITE_CONCERN );
+    }
     res_usu['doc'] = usuDoc;
     res_usu['old_value'] = old_value_usu;
 
@@ -373,17 +377,17 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
     const p_field = `sustainability.${sust}_${valor}`;
     
     const p_field_old = `sustainability.${sust}_${old_value}`;
-    const p_field_old_inc = old_value === undefined ? 0 : -1;
-
+    const p_field_old_inc = -1;
+    
     const query_aux = { };
     query_aux[p_field] = 1;
     query_aux[p_field_old] = p_field_old_inc;
     const query = { $inc: query_aux };
-    
+    wlog.silly(`bd_aux_producto_votar.query=${JSON.stringify(query)}`);
     const res_prod = await col_productos.updateOne({ "_id": producto._id }, query, BD_WRITE_CONCERN );
-
+    
     res_prod['doc'] = producto;
-
+    
     return res_prod;
 } // bd_aux_producto_votar
 
@@ -405,18 +409,21 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
 */
 async function bd_usuario_votar(usuario, code, sust, value) {
     wlog.silly(`bd_usuario_votar(${usuario},${code},${sust},${value})`);
-        
+    
     const res_usu = await bd_aux_usuario_votar(usuario, code, sust, value);
-    console.warn(JSON.stringify(res_usu));
-    const res_prod = await bd_aux_producto_votar(code, sust, value, res_usu.old_value);
-    console.warn(JSON.stringify(res_prod));
+
+    let res_prod = {};
+    if (value !== res_usu.old_value) {
+        res_prod = await bd_aux_producto_votar(code, sust, value, res_usu.old_value);
+    }
+    
     const res = {'usu': res_usu, 'prod': res_prod};
 
     return res;
 } // bd_usuario_votar
 
 const datos_sostenibilidad = {
-    'en:sustainability_level': 2.5,  // media de los datos de sostenibilidad de un producto
+    'en:sustainability_level': 3,  // media de los datos de sostenibilidad de un producto
     'en:suitable-packaging_true': 0,
     'en:suitable-packaging_undefined': 0,
     'en:suitable-packaging_false': 0,
