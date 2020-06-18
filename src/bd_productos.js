@@ -336,6 +336,21 @@ async function bd_usuario_salvar(usuario, conf) {
     }
 } // bd_usuario_salvar
 
+function string3boolean(valor) {
+    let res = valor;
+    
+    if (typeof (valor) === 'string') {
+        if (valor === 'true') {
+            res = true;
+        } else if (valor === 'false') {
+            res = false;
+        } else {
+            res = undefined;
+        }
+    }
+    wlog.silly(`string2boolean(${valor})=${res}`);
+    return res;
+}
 
 async function bd_aux_usuario_votar(usuario, code, sust, valor) {
     wlog.silly(`bd_aux_usuario_votar(${usuario}, ${code}, ${sust}, ${valor})`);
@@ -395,7 +410,7 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
     const query_aux_set = { };
     query_aux_set[p_field_sustainability] = p_field_sustainability_set;
     const query = { $inc: query_aux_inc, $set: query_aux_set };
-    wlog.silly(`bd_aux_producto_votar.query=${JSON.stringify(query)}`);
+    // wlog.silly(`bd_aux_producto_votar.query=${JSON.stringify(query)}`);
     const res_prod = await col_productos.updateOne({ "_id": producto._id }, query, BD_WRITE_CONCERN );
     
     res_prod['doc'] = await bd_buscar_regexp_barcode_product(code);
@@ -421,15 +436,16 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
 */
 async function bd_usuario_votar(usuario, code, sust, value) {
     wlog.silly(`bd_usuario_votar(${usuario},${code},${sust},${value})`);
-    
-    const res_usu = await bd_aux_usuario_votar(usuario, code, sust, value);
 
-    let res_prod = {};
+    value = string3boolean(value);
+    const res_usu = await bd_aux_usuario_votar(usuario, code, sust, value);
+    
+    let res_prod = { };
     if (value !== res_usu.old_value) {
         res_prod = await bd_aux_producto_votar(code, sust, value, res_usu.old_value);
     }
-    
-    const res = {'usu': res_usu, 'prod': res_prod};
+    const ok_res = res_prod && res_usu;
+    const res = {'usu': res_usu, 'prod': res_prod, 'ok': ok_res};
 
     return res;
 } // bd_usuario_votar
@@ -477,6 +493,7 @@ const datos_sostenibilidad_usuario_producto = {
   - Un valor que representa su valoración de sostenibilidad.
 */
 function calcular_sostenibilidad (producto) {
+    wlog.silly('calcular_sostenibilidad(...)');
     let res_med = { };
 
     if (producto.sustainability) {
@@ -495,7 +512,7 @@ function calcular_sostenibilidad (producto) {
         return ini_acum + current;
     });
 
-    return sum / (1.0 * Object.values.length());
+    return sum / (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length);
     
 }  // calcular_sostenibilidad
 
@@ -519,6 +536,7 @@ async function sostenibilidad_producto(producto) {
         } else {
             // completar los datos
             res['sustainability'] = { ...datos_sostenibilidad, ...res.sustainability};
+            // wlog.silly(`sostenibilidad_producto.res=${JSON.stringify(res.sustainability)}`);
         }
     }
     
