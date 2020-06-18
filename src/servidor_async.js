@@ -782,7 +782,7 @@ async function user_deluser(req, res, next) {
                     wlog.info("Resultado de la baja:");
                     if (res_baja && res_baja.result.ok == 1) {
                         wlog.info("Res alta OK");
-                        wlog.silly("Borrando sesion");
+                        wlog.info("Borrando sesion");
 
                         json_res = {...borrarSesion(session_id), ...json_res};
                         wlog.info(`Usuario ${username} ha cerrado sesion`);
@@ -943,8 +943,8 @@ async function user_vote(req, res, next) {
             if (session && (session.un === username)) {
                 // obtener los datos de este usuario
                 const res = await bd_usuario_votar(username, code, sustainability, value);
-
-                if ((res && ((res.usu.result.ok === 1) && (res.prod.result.ok === 1)))) {
+                // wlog.silly(`user_vote.res(bd_usuario_votar)=${JSON.stringify(res)}`);
+                if (res && (res.ok)) {
                     json_res['username'] = username;
                     json_res['session'] = session;
                     json_res['vot'] = res.usu.doc.vot;
