@@ -453,22 +453,22 @@ async function bd_usuario_votar(usuario, code, sust, value) {
 const datos_sostenibilidad = {
     'en:sustainability_level': 3,  // media de los datos de sostenibilidad de un producto
     'en:suitable-packaging_true': 0,
-    'en:suitable-packaging_undefined': 0,
+    'en:suitable-packaging_null': 0,
     'en:suitable-packaging_false': 0,
     'en:suitable-size_true': 0,
-    'en:suitable-size_undefined': 0,
+    'en:suitable-size_null': 0,
     'en:suitable-size_false': 0,
     'en:palm-oil_true': 0,
-    'en:palm-oil_undefined': 0,
+    'en:palm-oil_null': 0,
     'en:palm-oil_false': 0,
     'en:manufacturing_true': 0,
-    'en:manufacturing_undefined': 0,
+    'en:manufacturing_null': 0,
     'en:manufacturing_false': 0,
     'en:transport_true': 0,
-    'en:transport_undefined': 0,
+    'en:transport_null': 0,
     'en:transport_false': 0,
     'en:storage_true': 0,
-    'en:storage_undefined': 0,
+    'en:storage_null': 0,
     'en:storage_false': 0 
 };
 
@@ -501,7 +501,7 @@ function calcular_sostenibilidad (producto) {
         for (let k in Object.keys(datos_sostenibilidad_usuario_producto)) {
             // valor 0 a 1.0 de la opinión de los usuarios sobre ese parámetro para ese producto:
             let k_ok = producto.sustainability[k + "_true"] || 0;
-            let k_un = producto.sustainability[k + "_undefined"] || 0;
+            let k_un = producto.sustainability[k + "_null"] || 0;
             let k_mk = producto.sustainability[k + "_false"] || 0;
 
             res_med[k] = k_ok / (1.0 * (k_ok + k_un + k_mk));
