@@ -363,13 +363,20 @@ async function bd_aux_usuario_votar(usuario, code, sust, valor) {
     const db_usu = await c_usu.db(BD_USUARIOS);
     const col_usuarios = await db_usu.collection(COLECCION_USUARIOS);
 
-    let old_value_usu = undefined;
+    let old_value_usu = null;
     const field = `vot.${code}.${sust}`;
 
-    if (usuDoc.vot[code]) {
-        old_value_usu = usuDoc.vot[code][sust];
+    if (usuDoc.vot) {
+        if (usuDoc.vot[code]) {
+            old_value_usu = usuDoc.vot[code][sust];
+        } else {
+            old_value_usu = undefined;
+            usuDoc.vot[code] = { };
+        }
     } else {
-        usuDoc[code] = { };
+        old_value_usu = undefined;
+        usuDoc['vot'] = {};
+        usuDoc['vot']['code'] = {};
     }
     usuDoc.vot[code][sust] = valor; // actualizar el valor que se devolverá
 
@@ -388,6 +395,7 @@ async function bd_aux_usuario_votar(usuario, code, sust, valor) {
 } // bd_aux_usuario_votar
 
 async function bd_aux_producto_votar(code, sust, valor, old_value) {
+    wlog.silly(`bd_aux_producto_votar(${code}, ${sust}, ${valor}, ${old_value})`);
     const c_prod = await MONGO.connect(URL_MONGODB);
     const db_prod = await c_prod.db(BD_PRODUCTOS);
     const col_productos = await db_prod.collection(COLECCION_PRODUCTOS);
@@ -399,7 +407,7 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
 
     // si ese usuario ya había votado ese campo: campo de sostenibilidad antiguo
     const p_field_old = `sustainability.${sust}_${old_value}`;
-    const p_field_old_inc = -1;
+    const p_field_old_inc = old_value === undefined ? 0 : -1;
 
     // campo valoración global de sostenibilidad
     const p_field_sustainability = `sustainability.sustainability_level`;
@@ -506,22 +514,22 @@ function calcular_sostenibilidad (producto) {
             let k_un = producto.sustainability[k + "_null"] || 0;
             let k_mk = producto.sustainability[k + "_false"] || 0;
 
-            wlog.silly(`CALCULAR_SOSTENIBILIDAD: ${k} => ${k_ok} + ${k_un} + ${k_mk}`);
+            // wlog.silly(`CALCULAR_SOSTENIBILIDAD: ${k} => ${k_ok} + ${k_un} + ${k_mk}`);
             res_med[k] = k_ok / (1.0 * (k_ok + k_un + k_mk));
-            wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med[${k}]=${JSON.stringify(res_med)}`);
+            // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med[${k}]=${JSON.stringify(res_med)}`);
         };
     }
-
+    // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med=${JSON.stringify(res_med)}`);
     
     let sum = 0;
     for (let r in res_med) {
         sum = sum + res_med[r];
     };
 
-    wlog.silly(`CALCULAR_SOSTENIBILIDAD: sum=${sum}`);
-    
-    return (sum / (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length)) * CTE_ESCALADO;
-    
+    // wlog.silly(`CALCULAR_SOSTENIBILIDAD: sum=${sum},length=${Object.values(datos_sostenibilidad_usuario_producto).length}, CTE_ESCALADO=${CTE_ESCALADO}`);
+    const res = (sum / (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length)) * CTE_ESCALADO;
+    // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res=${res}`);
+    return res;
 }  // calcular_sostenibilidad
 
 /*
