@@ -35,7 +35,9 @@ const {
     BD_USUARIOS,
     COLECCION_USUARIOS,
 
-    BD_WRITE_CONCERN
+    BD_WRITE_CONCERN,
+
+    CTE_ESCALADO
 } = require('./configuracion.bd.js');
 
 const MONGO = require('mongodb').MongoClient;
