@@ -500,21 +500,27 @@ function calcular_sostenibilidad (producto) {
 
     if (producto.sustainability) {
         // recorrer todos los parámetros de sostenibilidad
-        for (let k in Object.keys(datos_sostenibilidad_usuario_producto)) {
+        for (let k in datos_sostenibilidad_usuario_producto) {
             // valor 0 a 1.0 de la opinión de los usuarios sobre ese parámetro para ese producto:
             let k_ok = producto.sustainability[k + "_true"] || 0;
             let k_un = producto.sustainability[k + "_null"] || 0;
             let k_mk = producto.sustainability[k + "_false"] || 0;
 
+            wlog.silly(`CALCULAR_SOSTENIBILIDAD: ${k} => ${k_ok} + ${k_un} + ${k_mk}`);
             res_med[k] = k_ok / (1.0 * (k_ok + k_un + k_mk));
-        };  
+            wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med[${k}]=${JSON.stringify(res_med)}`);
+        };
     }
 
-    const sum = Object.values(res_med).reduce((ini_acum, current, idx, array) => {
-        return ini_acum + current;
-    });
+    
+    let sum = 0;
+    for (let r in res_med) {
+        sum = sum + res_med[r];
+    };
 
-    return sum / (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length);
+    wlog.silly(`CALCULAR_SOSTENIBILIDAD: sum=${sum}`);
+    
+    return (sum / (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length)) * CTE_ESCALADO;
     
 }  // calcular_sostenibilidad
 
