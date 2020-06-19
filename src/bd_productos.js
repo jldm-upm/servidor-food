@@ -462,12 +462,12 @@ async function bd_usuario_votar(usuario, code, sust, value) {
 
 const datos_sostenibilidad = {
     'en:sustainability_level': 3,  // media de los datos de sostenibilidad de un producto
-    'en:suitable-packaging_true': 0,
-    'en:suitable-packaging_null': 0,
-    'en:suitable-packaging_false': 0,
-    'en:suitable-size_true': 0,
-    'en:suitable-size_null': 0,
-    'en:suitable-size_false': 0,
+    'en:packaging_true': 0,
+    'en:packaging_null': 0,
+    'en:packaging_false': 0,
+    'en:size_true': 0,
+    'en:size_null': 0,
+    'en:size_false': 0,
     'en:palm-oil_true': 0,
     'en:palm-oil_null': 0,
     'en:palm-oil_false': 0,
@@ -484,8 +484,8 @@ const datos_sostenibilidad = {
 
 // toma tres valores: false, true, null
 const datos_sostenibilidad_usuario_producto = {
-    'en:suitable-packaging': null,
-    'en:suitable-size': null,
+    'en:packaging': null,
+    'en:size': null,
     'en:palm-oil': null,
     'en:manufacturing': null,
     'en:transport': null,
@@ -519,6 +519,9 @@ function calcular_sostenibilidad (producto) {
             // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med[${k}]=${JSON.stringify(res_med)}`);
         };
     }
+
+    // huella de carbono
+    const res_hc = producto['carbon-footprint_100g']? (100 / producto['carbon-footprint_100g']) : 0.0;
     // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med=${JSON.stringify(res_med)}`);
     
     let sum = 0;
