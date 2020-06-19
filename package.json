@@ -4,6 +4,7 @@
     "description": "Servidor API acceso a la BD open-food-facts",
     "main": "src/servidor_async.js",
     "scripts": {
+        "fun": "gource --seconds-per-day 0.5",
         "test": "mocha",
         "locs": "git ls-files -- './*' ':(exclude)*/tax/*' ':(exclude)package-lock.json' | xargs wc -l",
         "start": "node -e 'require (\"./src/servidor_async.js\").start()'"
