@@ -171,9 +171,11 @@ function has(object, key) {
 // - skip      -> .skip(...)
 // - lang      -> (concat lang ":" término)
 // - sort_by   -> .sort(...)
+// - order     -> .sort(...=order) // 1 [ó -1]
 function componer_opciones_url_query(query) {
     wlog.silly(`componer_opciones_url_query(${query})`);
 
+    let orden = 1;
     let result = {};
 
     // try {
@@ -186,9 +188,12 @@ function componer_opciones_url_query(query) {
     if (has(query, 'lang')) {
         result['lang'] = query['lang'];
     }
+    if (has(query, 'order')) {
+        orden = Number(query['order']);
+    }
     if (has(query, 'sort_by')) {
         let sort_by = {};
-        sort_by[query['sort_by']] = 1;
+        sort_by[query['sort_by']] = orden;
         result['sort_by'] = sort_by;
     }
     // } catch (error) {
