@@ -370,12 +370,10 @@ async function bd_aux_usuario_votar(usuario, code, sust, valor) {
         if (usuDoc.vot[code]) {
             old_value_usu = usuDoc.vot[code][sust];
         } else {
-            old_value_usu = undefined;
             usuDoc.vot[code] = { };
         }
     } else {
-        old_value_usu = undefined;
-        usuDoc['vot'] = {};
+        usuDoc['vot'] = { };
         usuDoc['vot']['code'] = {};
     }
     usuDoc.vot[code][sust] = valor; // actualizar el valor que se devolverá
@@ -386,7 +384,7 @@ async function bd_aux_usuario_votar(usuario, code, sust, valor) {
         query_aux[field] = valor;
         const query = { $set: query_aux };
     
-        res_usu = await col_usuarios.updateOne({ "_id": usuario}, query, BD_WRITE_CONCERN );
+        res_usu = await col_usuarios.updateOne({ "_id": usuario}, query, BD_WRITE_CONCERN);
     }
     res_usu['doc'] = usuDoc;
     res_usu['old_value'] = old_value_usu;
