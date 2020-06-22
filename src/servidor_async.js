@@ -1036,8 +1036,10 @@ function configurar(aplicacion, clienteMongo) {
     aplicacion.get("/:facet.json", cors(), api_get_facet_json);
 
     // URL API para obtener productos que pertenecen a una categoria de un facet
-    aplicacion.get("/:category/:facet.json", api_get_category_products_json);
-    aplicacion.get("/:category/:facet/:num.json", api_get_category_n_products_json);
+    aplicacion.get("/:category/:facet.json", cors());
+    aplicacion.get("/:category/:facet.json", cors(), api_get_category_products_json);
+    aplicacion.get("/:category/:facet/:num.json", cors());
+    aplicacion.get("/:category/:facet/:num.json", cors(), api_get_category_n_products_json);
 
     // URL API busqueda de un producto
     aplicacion.get("/cgi/search.pl", api_search_products_json);
