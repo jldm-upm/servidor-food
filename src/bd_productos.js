@@ -407,10 +407,15 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
 
     // si ese usuario ya había votado ese campo: campo de sostenibilidad antiguo
     const p_field_old = `sustainability.${sust}_${old_value}`;
-    const p_field_old_inc = old_value === undefined ? 0 : -1;
-
+    
+    let p_field_old_inc = 0;
+    if (old_value !== null) {
+        if (producto.sustainability) {
+            p_field_old_inc = producto.sustainability[sust + "_" + old_value] > 0 ? -1 : 0;
+        }
+    }
     // campo valoración global de sostenibilidad
-    const p_field_sustainability = `sustainability.sustainability_level`;
+    const p_field_sustainability = 'sustainability.sustainability_level';
     const p_field_sustainability_set = calcular_sostenibilidad (producto);
     
     // componer la consulta de actualización
@@ -505,7 +510,8 @@ const datos_sostenibilidad_usuario_producto = {
 function calcular_sostenibilidad (producto) {
     wlog.silly('calcular_sostenibilidad(...)');
     let res_med = { };
-
+    let sum = 0.0;
+    
     if (producto.sustainability) {
         // recorrer todos los parámetros de sostenibilidad
         for (let k in datos_sostenibilidad_usuario_producto) {
@@ -514,24 +520,12 @@ function calcular_sostenibilidad (producto) {
             let k_un = producto.sustainability[k + "_null"] || 0;
             let k_mk = producto.sustainability[k + "_false"] || 0;
 
-            // wlog.silly(`CALCULAR_SOSTENIBILIDAD: ${k} => ${k_ok} + ${k_un} + ${k_mk}`);
-            res_med[k] = k_ok / (1.0 * (k_ok + k_un + k_mk));
-            // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med[${k}]=${JSON.stringify(res_med)}`);
+            res_med[k] = k_ok / Math.max(1, (1.0 * (k_ok + k_un + k_mk)));
+            sum += k_ok + k_un + k_mk > 0 ? k_ok / (1.0 * (k_ok + k_un + k_mk)) : 0;
         };
     }
 
-    // huella de carbono
-    const res_hc = producto['carbon-footprint_100g']? (100 / producto['carbon-footprint_100g']) : 0.0;
-    // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res_med=${JSON.stringify(res_med)}`);
-    
-    let sum = 0;
-    for (let r in res_med) {
-        sum = sum + res_med[r];
-    };
-
-    // wlog.silly(`CALCULAR_SOSTENIBILIDAD: sum=${sum},length=${Object.values(datos_sostenibilidad_usuario_producto).length}, CTE_ESCALADO=${CTE_ESCALADO}`);
-    const res = (sum / (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length)) * CTE_ESCALADO;
-    // wlog.silly(`CALCULAR_SOSTENIBILIDAD: res=${res}`);
+    const res = (sum / Math.max(1, (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length))) * CTE_ESCALADO;
     return res;
 }  // calcular_sostenibilidad
 
