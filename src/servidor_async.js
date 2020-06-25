@@ -425,7 +425,7 @@ async function api_get_category_n_products_json(req, res, next) {
             json_res['status'] = 1;
             json_res['opciones'] = opciones;
         } else {
-            json_res = { 'count': 0, 'tags': null, 'status': 0, 'opciones': opciones };
+            json_res = { 'count': 0, 'tags': null, 'status': 1, products: [], 'opciones': opciones };
             wlog.error(JSON.stringify(json_res));
         }
     } catch (err) {
@@ -474,7 +474,7 @@ async function api_get_category_products_json(req, res, next) {
             json_res['status'] = 1;
             json_res['opciones'] = opciones;
         } else {
-            json_res = { 'count': 0, 'tags': null, 'status': 0, 'opciones': opciones };
+            json_res = { 'count': 0, 'tags': null, 'status': 1, products: [], 'opciones': opciones };
             wlog.error(JSON.stringify(json_res));
         }
     } catch (err) {
