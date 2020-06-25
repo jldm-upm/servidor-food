@@ -182,10 +182,11 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
 
         const facet_tags = arr_categories_pl[arr_categories_sl.indexOf(category)] + '_tags';
         // TODO: traducir y generalizar
-        const valor = opciones.lang + ":" + facet;
+        const valor = facet.includes(':') ? facet : opciones.lang + ":" + facet;
 
         let query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL };
         query_busqueda[facet_tags] = valor;
+        wlog.info(JSON.stringify(query_busqueda));
         result = await col_productos.find(query_busqueda).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
 
         result = result.filter(val => !!val); // eliminar valores nulos
