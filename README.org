@@ -1,135 +1,5 @@
 # Servidor de Info de Sostenibilidad (servidor-food)
 
-Proporciona dos APIS:
-* Acceso a la información de los productos
-** /api/v0/product/:barcode.json -> api_get_food_barcode_json
-
-PRODUCTO: Buscar producto por codigo de barras.
-
-Al servidor se le pasa en la URL el barcode que se quiere consultar.
-
-Devuelve JSON con la información conetenida en la BD o un JSON que indica que no se encontró.
-
-** // /data/taxonomies/:taxonomia.json -> api_get_taxonomia_json
-
-TAXONOMIA: Valores predefinidos para una propiedad.
-
-Al servidor se le pasa en la URL el nombre de la taxonomía que se quiere consultar.
-
-Devuelve JSON con la información estática sobre la taxonomía en
-formato JSON o un documento JSON indicando el error.
-
-** /:facet.json -> api_get_facet_json
-
-FACET: Todos los valores introducidos por los usuarios para una propiedad.
-
-Al servidor se le pasa en la URL el nombre del facet que se quiere consultar.
-
-Devuelve JSON con la información sobre el facet en formato JSON o un
-documento JSON indicando el error.
-
-** /:category/:facet/:num.json -> api_get_category_n_products_json
-
-+ :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
-+ :FACET: Valor que puede toma la propiedad :CATEGORY 
-+ :NUM: Número de página (el tamaño de las páginas se indica en el valor de conf. TAMANO_PAGINA)
-
-Al servidor se le pasa en la URL el el nombre de la categoria
-que se quiere consultar, el valor que deben tener los productos
-para esa categoría y el número de página de datos requeridos (con TAMANO_PAGINA elementos)
-
-Devuelve JSON con los productos que pertenecen a esa categoría
-o un documento JSON indicando el error.
-
-** /:category/:facet.json -> api_get_category_products_json
-
-+ :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
-+ :FACET: Valor que puede toma la propiedad :CATEGORY 
-
-Al servidor se le pasa en la URL el el nombre de la categoria
-que se quiere consultar y el valor que deben tener los productos para esa categoría.
-
-Devuelve JSON con los productos que pertenecen a esa categoría
-o un documento JSON indicando el error.
-
-** /cgi/search.pl -> api_search_products_json
-
-Al servidor se le pasa en la URL como parámetros las opciones de filtro de búsqueda
-de productos que se le quieren pasar.
-
-Devuelve JSON con los productos filtrados
-o un documento JSON indicando el error.
-
-* Manejo de sesiones y cuentas de usuario
-
-** /user/login -> user_login
-
-Al servidor se le pasa como parámetros post el nombre de usuario
-(username) y la contraseña (password).
-
-Comprueba si existen en la BD y si es así crea un objeto de sesion
-que almacena en la variable sesiones y devuelve este objeto con 'status'=1,
-('status'=0) si no se encontró el usuario o se pudo crear la sesión
-
-** /user/new -> user_newuser
-
-Al servidor se le pasa como parámetros post el nombre de usuario
-(username) y la contraseña (password).
-
-Comprueba si existe un usuario en la BD y si es así o hay algún otro problema
-para crear el usuario devuelve un JSON con 'status=0'.
-
-Si no existe guarda un hash de la contraseña y salt en la BD,
-junto con el nombre de usuario y con los datos de usuario (incluyendo un número de sessión).
-
-** /user/delete -> user_deluser
-
-Al servidor se le pasa como parámetros post el nombre de usuario
-(username) y los datos de sesión.
-
-Comprueba si existe un usuario en la BD y si no es así o hay algún otro problema
-para crear el usuario devuelve un JSON con 'status=0'.
-
-Si existe elimina al usuario de la BD. Esto incluye sus
-votaciones. Pero NO el agregado de sus votaciones.
-
-** /user/logout -> user_logout
-
-Al servidor se le pasa como parámetro el nombre de usuario y el identificador de sesion.
-
-Comprueba si existen en el gestor de sesiones BD y si es así lo elimina
-
-** /user/save -> user_save
-
-Al servidor se le pasa como parámetro el nombre de usuario,
-el identificador de sesion y tiempo de creación de sesión.
-También se le pasa la configuración a salvar
-
-Comprueba si existen en el gestor de sesiones BD y si es así guarda
-en la BD la configuración
-
-** /user/vote/:code/:sustainability/:value -> user_vote
-
-Al servidor se le pasa como parámetros el código del producto,
-el valor de sostenibilidad a votar y el valor que se le asignará.
-
-Como dato POST se le pasa el JSON que identifica la session
-
-Comprueba si existe una sessión como la que se ha pasado.
-
-Actualiza las votaciones del usuario para ese código, valor de sostenibilidad.
-
-Comprueba si existe el producto y actualiza los datos de sostenibilidad
-agregados de producto. Si el usuario ya había votado ese codigo/sostenibilidad
-"desagrega" el valor y lo añade correctamente.
-
-Devuelve un objeto que contiene los campos:
- - username: nombre de usuario que realizó la votación
- - session: objeto identificador de sessión utilizada por el usuario: { ts: tiempo de inicio de sesion, un: username, id: identificador de sesión}
- - vot: objeto registro actualizado de votaciones del usuario
- - conf: objeto con configuración del usuario
- - prod: objeto producto con el resultado de la votación actualizado
-
 * Instalación
 ** Instalar las dependencias
  #+BEGIN_SRC sh
@@ -174,3 +44,133 @@ Devuelve un objeto que contiene los campos:
 [[file:src/configuracion.logger.js][file:src/configuracion.logger.js]]
 #+CAPTION: Configuración de logging
 #+INCLUDE: "src/configuracion.logger.js" src js :lines "4-7"
+* Proporciona dos APIS:
+** Acceso a la información de los productos
+*** /api/v0/product/:barcode.json -> api_get_food_barcode_json
+
+ PRODUCTO: Buscar producto por codigo de barras.
+
+ Al servidor se le pasa en la URL el barcode que se quiere consultar.
+
+ Devuelve JSON con la información conetenida en la BD o un JSON que indica que no se encontró.
+
+*** // /data/taxonomies/:taxonomia.json -> api_get_taxonomia_json
+
+ TAXONOMIA: Valores predefinidos para una propiedad.
+
+ Al servidor se le pasa en la URL el nombre de la taxonomía que se quiere consultar.
+
+ Devuelve JSON con la información estática sobre la taxonomía en
+ formato JSON o un documento JSON indicando el error.
+
+*** /:facet.json -> api_get_facet_json
+
+ FACET: Todos los valores introducidos por los usuarios para una propiedad.
+
+ Al servidor se le pasa en la URL el nombre del facet que se quiere consultar.
+
+ Devuelve JSON con la información sobre el facet en formato JSON o un
+ documento JSON indicando el error.
+
+*** /:category/:facet/:num.json -> api_get_category_n_products_json
+
+ + :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
+ + :FACET: Valor que puede toma la propiedad :CATEGORY 
+ + :NUM: Número de página (el tamaño de las páginas se indica en el valor de conf. TAMANO_PAGINA)
+
+ Al servidor se le pasa en la URL el el nombre de la categoria
+ que se quiere consultar, el valor que deben tener los productos
+ para esa categoría y el número de página de datos requeridos (con TAMANO_PAGINA elementos)
+
+ Devuelve JSON con los productos que pertenecen a esa categoría
+ o un documento JSON indicando el error.
+
+*** /:category/:facet.json -> api_get_category_products_json
+
+ + :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
+ + :FACET: Valor que puede toma la propiedad :CATEGORY 
+
+ Al servidor se le pasa en la URL el el nombre de la categoria
+ que se quiere consultar y el valor que deben tener los productos para esa categoría.
+
+ Devuelve JSON con los productos que pertenecen a esa categoría
+ o un documento JSON indicando el error.
+
+*** /cgi/search.pl -> api_search_products_json
+
+ Al servidor se le pasa en la URL como parámetros las opciones de filtro de búsqueda
+ de productos que se le quieren pasar.
+
+ Devuelve JSON con los productos filtrados
+ o un documento JSON indicando el error.
+
+** Manejo de sesiones y cuentas de usuario
+
+*** /user/login -> user_login
+
+ Al servidor se le pasa como parámetros post el nombre de usuario
+ (username) y la contraseña (password).
+
+ Comprueba si existen en la BD y si es así crea un objeto de sesion
+ que almacena en la variable sesiones y devuelve este objeto con 'status'=1,
+ ('status'=0) si no se encontró el usuario o se pudo crear la sesión
+
+*** /user/new -> user_newuser
+
+ Al servidor se le pasa como parámetros post el nombre de usuario
+ (username) y la contraseña (password).
+
+ Comprueba si existe un usuario en la BD y si es así o hay algún otro problema
+ para crear el usuario devuelve un JSON con 'status=0'.
+
+ Si no existe guarda un hash de la contraseña y salt en la BD,
+ junto con el nombre de usuario y con los datos de usuario (incluyendo un número de sessión).
+
+*** /user/delete -> user_deluser
+
+ Al servidor se le pasa como parámetros post el nombre de usuario
+ (username) y los datos de sesión.
+
+ Comprueba si existe un usuario en la BD y si no es así o hay algún otro problema
+ para crear el usuario devuelve un JSON con 'status=0'.
+
+ Si existe elimina al usuario de la BD. Esto incluye sus
+ votaciones. Pero NO el agregado de sus votaciones.
+
+*** /user/logout -> user_logout
+
+ Al servidor se le pasa como parámetro el nombre de usuario y el identificador de sesion.
+
+ Comprueba si existen en el gestor de sesiones BD y si es así lo elimina
+
+*** /user/save -> user_save
+
+ Al servidor se le pasa como parámetro el nombre de usuario,
+ el identificador de sesion y tiempo de creación de sesión.
+ También se le pasa la configuración a salvar
+
+ Comprueba si existen en el gestor de sesiones BD y si es así guarda
+ en la BD la configuración
+
+*** /user/vote/:code/:sustainability/:value -> user_vote
+
+ Al servidor se le pasa como parámetros el código del producto,
+ el valor de sostenibilidad a votar y el valor que se le asignará.
+
+ Como dato POST se le pasa el JSON que identifica la session
+
+ Comprueba si existe una sessión como la que se ha pasado.
+
+ Actualiza las votaciones del usuario para ese código, valor de sostenibilidad.
+
+ Comprueba si existe el producto y actualiza los datos de sostenibilidad
+ agregados de producto. Si el usuario ya había votado ese codigo/sostenibilidad
+ "desagrega" el valor y lo añade correctamente.
+
+ Devuelve un objeto que contiene los campos:
+  - username: nombre de usuario que realizó la votación
+  - session: objeto identificador de sessión utilizada por el usuario: { ts: tiempo de inicio de sesion, un: username, id: identificador de sesión}
+  - vot: objeto registro actualizado de votaciones del usuario
+  - conf: objeto con configuración del usuario
+  - prod: objeto producto con el resultado de la votación actualizado
+
