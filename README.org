@@ -1,0 +1,51 @@
+# Servidor de Info de Sostenibilidad (servidor-food)
+
+Proporciona dos APIS:
+* Acceso a la información de los productos
+* Manejo de cuentas de usuario
+
+* Instalación
+** Instalar las dependencias
+ #+BEGIN_SRC sh
+
+ npm install
+
+ #+END_SRC
+
+** Iniciar el servidor
+ #+BEGIN_SRC sh
+
+ npm start
+
+ #+END_SRC
+
+** Ejecutar tests
+ #+BEGIN_SRC sh
+
+ npm test
+
+ #+END_SRC
+
+
+** Contar líneas de código
+ #+BEGIN_SRC sh
+
+ npm run locs
+
+ #+END_SRC
+
+** Personalizar la configuración
+*** Servidor
+[[file:src/configuracion.servidor.js][file:src/configuracion.servidor.js]]
+#+CAPTION: Configuración del servidor
+#+INCLUDE: "src/configuracion.servidor.js" src js :lines "13-31"
+
+*** Base de datos
+[[file:src/configuracion.bd.js][file:src/configuracion.bd.js]]
+#+CAPTION: Configuración de base de datos
+#+INCLUDE: "src/configuracion.bd.js" src js :lines "27-43"
+
+*** Logging
+[[file:src/configuracion.logger.js][file:src/configuracion.logger.js]]
+#+CAPTION: Configuración de logging
+#+INCLUDE: "src/configuracion.logger.js" src js :lines "4-7"
