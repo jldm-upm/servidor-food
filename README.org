@@ -61,7 +61,7 @@
 
  Devuelve JSON con la información conetenida en la BD o un JSON que indica que no se encontró.
 
-*** // /data/taxonomies/:taxonomia.json -> api_get_taxonomia_json
+*** /data/taxonomies/:taxonomia.json -> api_get_taxonomia_json
 
  TAXONOMIA: Valores predefinidos para una propiedad.
 
