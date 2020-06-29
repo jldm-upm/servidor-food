@@ -29,7 +29,7 @@
 
  #+END_SRC
 
-** Personalizar la configuración
+* Personalizar la configuración
 *** Servidor
 [[file:src/configuracion.servidor.js][file:src/configuracion.servidor.js]]
 #+CAPTION: Configuración del servidor
