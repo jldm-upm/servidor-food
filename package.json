@@ -7,7 +7,8 @@
         "fun": "gource --seconds-per-day 0.5",
         "test": "mocha",
         "locs": "git ls-files -- './*' ':(exclude)*/tax/*' ':(exclude)package-lock.json' | xargs wc -l",
-        "start": "node -e 'require (\"./src/servidor_async.js\").start()'"
+        "start": "node -e 'require (\"./src/servidor_async.js\").start()'",
+        "gettax": "cd src/static/tax/ && sh update_tax.sh"
     },
     "author": "José L. Domenech",
     "license": "AGPLv3",

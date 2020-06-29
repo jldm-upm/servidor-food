@@ -8,6 +8,13 @@
 
  #+END_SRC
 
+** Descargar/Actualizar taxonomías de la base de datos
+ #+BEGIN_SRC sh
+
+ npm run gettax
+
+ #+END_SRC
+
 ** Iniciar el servidor
  #+BEGIN_SRC sh
 
