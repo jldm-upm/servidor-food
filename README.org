@@ -8,7 +8,7 @@
 
  #+END_SRC
 
-** Descargar/Actualizar taxonomías de la base de datos
+** Descargar/Actualizar datos estáticos de OpenFoodFacts
  #+BEGIN_SRC sh
 
  npm run gettax
