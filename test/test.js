@@ -6,6 +6,7 @@ const assert = require('chai').assert;
 const http = require('http');
 const url = require('url');
 const bl = require('bl');
+const querystring = require('querystring');
 
 const SERVIDOR = '127.0.0.1';
 const PUERTO = 8000;
@@ -29,7 +30,36 @@ function httpGet(url) {
     });
 };
 
-describe('Acceso al servidor', function() {
+function httpPost(host,port,url,data) {
+    return new Promise(function(resolve, reject) {
+        // Build the post string from an object
+        const post_data = querystring.stringify(data);
+        // An object of options to indicate where to post to
+        const post_options = {
+            host: host,
+            port: port,
+            path: url,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(post_data)
+            }
+        };
+        // Set up the request
+        let post_req = http.request(post_options, function(res) {
+            res.setEncoding('utf8');
+            res.on('data', function (chunk) {
+                resolve(JSON.parse(chunk));
+            });
+        });
+
+        // post the data
+        post_req.write(post_data);
+        post_req.end();
+    });
+}
+
+describe('Productos', function() {
     this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
     const code = '737628064502';
     describe('"/api/v0/product/:barcode.json", api_get_food_barcode_json', function() {
@@ -52,18 +82,10 @@ describe('Acceso al servidor', function() {
         });
     });
     describe('"/:facet.json", api_get_facet_json', function() {
-        const q2 = '/ingredients.json';
+        const q2 = '/languages.json';
         it(`${q2}: debe devolver los facets (valores que contiene una propiedad introducidos por el usuario) que corresponden a ingredients`, async function() {
 
             const res = await httpGet(`${URL_BASE}${q2}`);
-
-            assert(res.data.count > 0,
-                   `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
-        });
-        const q = '/categories.json';
-        it(`${q}: debe devolver una lista de categorias (facets introducidos por los usuarios)`, async function() {
-
-            const res = await httpGet(`${URL_BASE}${q}`);
 
             assert(res.data.count > 0,
                    `Se debe devolver un array con contenido y se devolvió uno que contiene ${res.data.count} elementos`);
@@ -118,4 +140,41 @@ describe('Acceso al servidor', function() {
                    `El tamaño de array de productos debe de coindicidir con el campo count`);
         });
     });
+});
+
+describe('Usuarios', function() {
+    this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
+    const code = '737628064502';
+    describe('/user/new', function () {
+        const q = '/user/new';
+        const data = {
+            username: 'test',
+            password: 'testtest',
+            password2: 'testtest',
+            accepted: true
+        };
+        it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, data);
+            console.log(`RES: ${JSON.stringify(res)}`);
+            assert(res['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res)}`);
+        });
+    });
+    describe('/user/login', function () {
+        const q = '/user/login';
+        const data = {
+            username: 'test',
+            password: 'testtest'
+        };
+        it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, data);
+            console.log(`RES: ${JSON.stringify(typeof(res))}`);
+            assert(res['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res)}`);
+        });
+    });
+    // describe('/user/save');
+    // describe('Votaciones', function () {
+    //     describe('/user/vote/:code/:sustainability/:value');
+    // });
+    // describe('/user/logout');
+    // describe('/user/delete');
 });
