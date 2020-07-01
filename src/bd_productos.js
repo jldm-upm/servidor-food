@@ -154,8 +154,7 @@ async function bd_get_valores_facets(campo, opciones = OPCIONES_DEFECTO) {
     // wlog.silly(query);
     // result = await col_productos.aggregate(query).skip(skip).limit(page_size);
     // result = result.filter(val => !!val); // eliminar valores nulos
-
-    return result.map(sostenibilidad_producto);
+    return result;
 }; // bd_get_valores_facets
 
 /*
@@ -539,15 +538,15 @@ function calcular_sostenibilidad (producto) {
   - El mismo objeto si ya contiene datos de sostenibilidad o uno modificado que incluya los
   datos iniciales
 */
-async function sostenibilidad_producto(producto) {
+function sostenibilidad_producto(producto) {
     wlog.silly(`sostenibilidad_producto(${producto ? producto._id : null})`);
-    let res = {...producto};
+    let res = Object.assign(producto);
     if (producto && producto.code) {
         if (!(producto.sustainability)) {
             res['sustainability'] = datos_sostenibilidad;
         } else {
             // completar los datos
-            res['sustainability'] = { ...datos_sostenibilidad, ...res.sustainability};
+            Object.assign(res['sustainability'], datos_sostenibilidad, res.sustainability);
             // wlog.silly(`sostenibilidad_producto.res=${JSON.stringify(res.sustainability)}`);
         }
     }
