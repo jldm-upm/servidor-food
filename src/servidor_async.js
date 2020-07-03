@@ -219,7 +219,7 @@ function getUnixTime() {
 // -------------------------------------------------------------------
 // Función del API del servidor:
 //
-// /api/v0/product/:barcode.json
+// GET /api/v0/product/:barcode.json
 //
 // PRODUCTO: Buscar producto por codigo de barras.
 //
@@ -287,7 +287,7 @@ async function api_get_food_barcode_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
-// /data/taxonomies/:taxonomia.json
+// GET /data/taxonomies/:taxonomia.json
 //
 // TAXONOMIA: Valores predefinidos para una propiedad.
 //
@@ -338,7 +338,7 @@ async function api_get_taxonomia_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
-// /:facet.json
+// GET /:facet.json
 //
 // FACET: Todos los valores introducidos por los usuarios para una propiedad.
 //
@@ -381,7 +381,7 @@ async function api_get_facet_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
-// /:category/:facet/:num.json
+// GET /:category/:facet/:num.json
 //
 // :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
 // :FACET: Valor que puede toma la propiedad :CATEGORY 
@@ -437,7 +437,7 @@ async function api_get_category_n_products_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
-// /:category/:facet.json
+// GET /:category/:facet.json
 //
 // :CATEGORY: Nombre de una propiedad, p.e. 'category' que usará la propiedad 'categories_tags'
 // :FACET: Valor que puede toma la propiedad :CATEGORY 
@@ -486,7 +486,7 @@ async function api_get_category_products_json(req, res, next) {
 // -------------------------------------------------------------------
 // Función del API del servidor.
 //
-// /cgi/search.pl
+// GET /cgi/search.pl
 //
 // Al servidor se le pasa en la URL como parámetros las opciones de filtro de búsqueda
 // de productos que se le quieren pasar.
@@ -619,7 +619,7 @@ function borrarSesion(session_id) {
 
 // Función del API de usuarios del servidor.
 //
-// /user/login
+// POST /user/login
 //
 // Al servidor se le pasa como parámetros post el nombre de usuario
 // (username) y la contraseña (password).
@@ -668,7 +668,7 @@ async function user_login(req, res, next) {
 
 // Función del API de usuarios del servidor.
 //
-// /user/new
+// POST /user/new
 //
 // Al servidor se le pasa como parámetros post el nombre de usuario
 // (username) y la contraseña (password).
@@ -737,7 +737,7 @@ async function user_newuser(req, res, next) {
 
 // Función del API de usuarios del servidor.
 //
-// /user/delete
+// POST /user/delete
 //
 // Al servidor se le pasa como parámetros post el nombre de usuario
 // (username) y los datos de sesión.
@@ -808,7 +808,7 @@ async function user_deluser(req, res, next) {
 
 // Función del API de usuarios del servidor.
 //
-// /user/logout
+// POST /user/logout
 //
 // Al servidor se le pasa como parámetro el nombre de usuario y el identificador de sesion.
 //
@@ -848,7 +848,7 @@ async function user_logout(req, res, next) {
 
 // Función del API de usuarios del servidor.
 //
-// /user/save
+// POST /user/save
 //
 // Al servidor se le pasa como parámetro el nombre de usuario,
 // el identificador de sesion y tiempo de creación de sesión.
@@ -896,7 +896,7 @@ async function user_save(req, res, next) {
     } catch(error) {
         json_res = error_json(error);
     }
-
+    
     res.send(json_res);
 }; // async user_logout
 
