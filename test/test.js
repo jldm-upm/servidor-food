@@ -3,62 +3,86 @@
 //const assert = require('assert');
 const assert = require('chai').assert;
 
-const http = require('http');
-const url = require('url');
-const bl = require('bl');
-const querystring = require('querystring');
+// const http = require('http');
+// const url = require('url');
+// const bl = require('bl');
+// const querystring = require('querystring');
 
 const SERVIDOR = '127.0.0.1';
 const PUERTO = 8000;
 const URL_BASE = `http://${SERVIDOR}:${PUERTO}`;
 
-const TIEMPO_RAZONABLE_DE_RESPUESTA_MS = 120000;
+const TIEMPO_RAZONABLE_DE_RESPUESTA_MS = 15000;
 
-function httpGet(url) {
-    return new Promise(function(resolve, reject) {
-        http.get(url, function(response) {
-            response.pipe(bl(function(err, data) {
-                const res = {
-                    status: response.statusCode,
-                    status_msg: response.statusMessage,
-                    data: JSON.parse(data.toString())
-                };
-                //	console.log(res);
-                resolve(res);
-            }));
-        });
+// function httpGet(url) {
+//     return new Promise(function(resolve, reject) {
+//         http.get(url, function(response) {
+//             response.pipe(bl(function(err, data) {
+//                 const res = {
+//                     status: response.statusCode,
+//                     status_msg: response.statusMessage,
+//                     data: JSON.parse(data.toString())
+//                 };
+//                 //	console.log(res);
+//                 resolve(res);
+//             }));
+//         });
+//     });
+// };
+
+// function httpPost(host,port,url,data) {
+//     return new Promise(function(resolve, reject) {
+//         // Build the post string from an object
+//         const post_data = querystring.stringify(data);
+//         // An object of options to indicate where to post to
+//         const post_options = {
+//             host: host,
+//             port: port,
+//             path: url,
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/x-www-form-urlencoded',
+//                 'Content-Length': Buffer.byteLength(post_data)
+//             }
+//         };
+//         // Set up the request
+//         let post_req = http.request(post_options, function(res) {
+//             res.setEncoding('utf8');
+//             res.on('data', function (chunk) {
+//                 resolve(JSON.parse(chunk));
+//             });
+//         });
+
+//         // post the data
+//         post_req.write(post_data);
+//         post_req.end();
+//     });
+// }
+const axios = require('axios');
+
+async function httpGet(url) {
+    const res = await axios({
+        method: 'get',
+        baseURL: url,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        timeout: TIEMPO_RAZONABLE_DE_RESPUESTA_MS
     });
+    return res;
 };
 
-function httpPost(host,port,url,data) {
-    return new Promise(function(resolve, reject) {
-        // Build the post string from an object
-        const post_data = querystring.stringify(data);
-        // An object of options to indicate where to post to
-        const post_options = {
-            host: host,
-            port: port,
-            path: url,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(post_data)
-            }
-        };
-        // Set up the request
-        let post_req = http.request(post_options, function(res) {
-            res.setEncoding('utf8');
-            res.on('data', function (chunk) {
-                resolve(JSON.parse(chunk));
-            });
-        });
+async function httpPost(host, port, url, data={},headers={}) {
 
-        // post the data
-        post_req.write(post_data);
-        post_req.end();
+    const res = await axios({
+        method: 'post',
+        baseURL: URL_BASE,
+        url: url,
+        data: data,
+        headers: {...headers, 'Access-Control-Allow-Origin': '*' },
+        timeout: TIEMPO_RAZONABLE_DE_RESPUESTA_MS
     });
-}
-
+    return res;
+};
+  
 describe('Productos', function() {
     this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
     const code = '737628064502';
@@ -67,6 +91,7 @@ describe('Productos', function() {
         it(`${q}: debe encontrar el producto con código de barras ${code}`, async function() {
 
             const res = await httpGet(`${URL_BASE}${q}`);
+
             assert.match(res.data.code, new RegExp(code),
                          `El código del producto devuelto ${res.data.code} debería coincidir con /${code}/`);
         });
@@ -76,7 +101,6 @@ describe('Productos', function() {
         it(`${q}: debe devolver un objeto con los valores de la taxonomia (aditivos)`, async function() {
 
             const res = await httpGet(`${URL_BASE}${q}`);
-
             assert(Object.keys(res.data).length > 0,
                    `Se debe devolver un array con contenido y se devolvió ${Object.keys(res.data).length}`);
         });
@@ -145,36 +169,81 @@ describe('Productos', function() {
 describe('Usuarios', function() {
     this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
     const code = '737628064502';
-    describe('/user/new', function () {
-        const q = '/user/new';
-        const data = {
-            username: 'test',
-            password: 'testtest',
-            password2: 'testtest',
-            accepted: true
-        };
-        it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
-            const res = await httpPost(SERVIDOR, PUERTO, q, data);
-            console.log(`RES: ${JSON.stringify(res)}`);
-            assert(res['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res)}`);
-        });
-    });
+    // describe('/user/new', function () {
+    //     const q = '/user/new';
+    //     const data = {
+    //         username: 'test',
+    //         password: 'testtest',
+    //         password2: 'testtest',
+    //         accepted: true
+    //     };
+    //     it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
+    //         const res = await httpPost(SERVIDOR, PUERTO, q, data);
+    //         assert(res['session'], 'Se tiene que devolver información de sesión ' + JSON.stringify(res));
+    //         assert(res['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res['session'])}`);
+    //     });
+    // });
     describe('/user/login', function () {
+
+        const data_fail = {username: 'noexiste', password: 'elidido'};
         const q = '/user/login';
+        it(`${q}[${JSON.stringify(data_fail)}] tiene que devolver un estado de error porque el usuario no existe`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, data_fail);
+
+            assert(res.data.status !== 1, `Se devolvió la sesión ${JSON.stringify(res.data['session'])}`);
+        });
+
         const data = {
             username: 'test',
             password: 'testtest'
         };
+
         it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
             const res = await httpPost(SERVIDOR, PUERTO, q, data);
-            console.log(`RES: ${JSON.stringify(typeof(res))}`);
-            assert(res['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res)}`);
+
+            assert(res.data.status == 1, `Se devolvió el estado de operación: ${JSON.stringify(res.data.status)}`);
+            assert(res.data.session.id.length > 0, `Se devolvió la sesión ${JSON.stringify(res['session'])}`);
+
+            return res.data.session;
+        });
+
+    });
+
+    describe('/user/logout', function () {
+        const q = 'user/logout';
+        it (`$q tiene que devolver un estado de Error ya que no se pasan datos de sesión`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, {});
+            assert(res.data.status !== 1, `El estado devuelto es: ${res.data.status}`);
         });
     });
-    // describe('/user/save');
+    
+    describe('/user/save', function () {
+        const q = 'user/save';
+        const data_fail = {
+            un: "test",
+            session_id: 'blah',
+            ts: 'blah',
+            conf: { dato: 'Testing'}
+        };
+        it(`${q}[${JSON.stringify(data_fail)}] tiene que devolver un resultado de error (intenta guardar datos con una sesión incorrecta)`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, data_fail);
+            assert(res.data.status !== 1, `Se devolvión el estado ${JSON.stringify(res.data['status'])}`);
+        });
+
+    });
+    
     // describe('Votaciones', function () {
     //     describe('/user/vote/:code/:sustainability/:value');
     // });
-    // describe('/user/logout');
-    // describe('/user/delete');
+    
+    describe('/user/delete', function () {
+        const q = 'user/delete';
+        const data = { un: "test",
+                     };
+
+        it(`${q}[${JSON.stringify(data)}] tiene que devolver una resultado de Error, ya que no se pasan datos de session`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, data);
+            assert(res.data['status'] !== 1, `Se devolvió el estado ${res.data.status}`);
+        });
+    });
 });
