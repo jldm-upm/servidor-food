@@ -7,6 +7,7 @@ const assert = require('chai').assert;
 // const url = require('url');
 // const bl = require('bl');
 // const querystring = require('querystring');
+const qs = require('qs');
 
 const SERVIDOR = '127.0.0.1';
 const PUERTO = 8000;
@@ -169,42 +170,67 @@ describe('Productos', function() {
 describe('Usuarios', function() {
     this.timeout(TIEMPO_RAZONABLE_DE_RESPUESTA_MS);
     const code = '737628064502';
-    // describe('/user/new', function () {
-    //     const q = '/user/new';
-    //     const data = {
-    //         username: 'test',
-    //         password: 'testtest',
-    //         password2: 'testtest',
-    //         accepted: true
-    //     };
-    //     it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
-    //         const res = await httpPost(SERVIDOR, PUERTO, q, data);
-    //         assert(res['session'], 'Se tiene que devolver información de sesión ' + JSON.stringify(res));
-    //         assert(res['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res['session'])}`);
-    //     });
-    // });
+    describe('/user/new', function () {
+        const q = '/user/new';
+        const data = {
+            username: 'test',
+            password: 'testtest',
+            password2: 'testtest',
+            accepted: true
+        };
+        it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q, data);
+            assert(res.data['session'], 'Se tiene que devolver información de sesión ' + JSON.stringify(res.data.session));
+            assert(res.data['session']['id'].length > 0, `Se devolvió la sesión ${JSON.stringify(res.data['session'].id)}`);
+        });
+    });
     describe('/user/login', function () {
 
         const data_fail = {username: 'noexiste', password: 'elidido'};
-        const q = '/user/login';
-        it(`${q}[${JSON.stringify(data_fail)}] tiene que devolver un estado de error porque el usuario no existe`, async function () {
-            const res = await httpPost(SERVIDOR, PUERTO, q, data_fail);
+        const q_login = '/user/login';
+        const q_save = '/user/save';
+        it(`${q_login}[${JSON.stringify(data_fail)}] tiene que devolver un estado de error porque el usuario no existe`, async function () {
+            const res = await httpPost(SERVIDOR, PUERTO, q_login, data_fail);
 
             assert(res.data.status !== 1, `Se devolvió la sesión ${JSON.stringify(res.data['session'])}`);
         });
 
-        const data = {
+        const login_data = {
             username: 'test',
             password: 'testtest'
         };
 
-        it(`${q}[${JSON.stringify(data)}] tiene que devolver una sesión`, async function () {
-            const res = await httpPost(SERVIDOR, PUERTO, q, data);
+        it(`${q_login}[${JSON.stringify(login_data)}] tiene que procesar una sesión: login/save/votar/logout`, async function () {
+            //
+            // LOGIN
+            // 
+            const res_login = await httpPost(SERVIDOR, PUERTO, q_login, login_data);
 
-            assert(res.data.status == 1, `Se devolvió el estado de operación: ${JSON.stringify(res.data.status)}`);
-            assert(res.data.session.id.length > 0, `Se devolvió la sesión ${JSON.stringify(res['session'])}`);
-
-            return res.data.session;
+            assert(res_login.data.status == 1, `LOGIN: Devolver el estado de operación: ${JSON.stringify(res_login.data.status)}`);
+            assert(res_login.data.session.id.length > 0, `LOGIN: Devolver el id. de sesión: ${JSON.stringify(res_login['session'])}`);
+            //
+            //  SAVE
+            // 
+            const session_data = {
+                un: res_login.data.session.un,
+                id: res_login.data.session.id,
+                ts: res_login.data.session.ts,
+            };
+            const res_save = await httpPost(SERVIDOR, PUERTO, q_save, {...session_data, conf: { dato: 'Hola' }});
+            assert (res_save.data.status === 1, 'Operación de guardado correcta');
+            //
+            // VOTAR
+            //
+            const q_votar = `/user/vote/${code}/en:storage/true`;
+            const res_votar = await httpPost(SERVIDOR, PUERTO, q_votar, {...session_data});
+            assert(res_votar.data.status === 1, `El estado devuelto es: ${res_votar.data.status}`);
+            
+            //
+            // ELIMINAR USUARIO
+            //
+            const q_borrar = '/user/delete';
+            const res_delete = await httpPost(SERVIDOR,PUERTO,q_borrar, {...session_data});
+            assert(res_delete.data.status === 1, `El estado devuelto es: ${res_delete.data.status}`);
         });
 
     });
