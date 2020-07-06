@@ -113,6 +113,10 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
 
     const query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL, code: { $regex: regexp_barcode, $options: "$i" } };
 
+    if (opciones.countries) {
+        query_busqueda['countries_tags'] = { $in: opciones.countries };
+    }
+    
     const result = await col_productos.findOne(query_busqueda); //.sort(opciones.sort_by);
 
     return sostenibilidad_producto(result);
@@ -186,6 +190,11 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
         let query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL };
         query_busqueda[facet_tags] = valor;
         wlog.info(JSON.stringify(query_busqueda));
+
+        if (opciones.countries) {
+            query_busqueda['countries_tags'] = { $in: opciones.countries };
+        }
+        
         result = await col_productos.find(query_busqueda).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
 
         result = result.filter(val => !!val); // eliminar valores nulos

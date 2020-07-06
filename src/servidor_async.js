@@ -196,6 +196,9 @@ function componer_opciones_url_query(query) {
         sort_by[query['sort_by']] = orden;
         result['sort_by'] = sort_by;
     }
+    if (has(query, 'countries')) {
+        result['countries'] = query['countries'].split(',');
+    }
     // } catch (error) {
     //     wlog.error(`Error al acceder a los datos de la query: ${error}`);
     // }
