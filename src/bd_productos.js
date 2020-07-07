@@ -112,10 +112,6 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
     const query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL, code: { $regex: regexp_barcode, $options: "$i" } };
-
-    if (opciones.countries) {
-        query_busqueda['countries_tags'] = { $in: opciones.countries };
-    }
     
     const result = await col_productos.findOne(query_busqueda); //.sort(opciones.sort_by);
 
