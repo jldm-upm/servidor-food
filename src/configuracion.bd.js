@@ -23,6 +23,7 @@
   CTE_ESCALADO
 }
 */
+const ALMACENAR_INFORMACION_INDIVIDUAL_VOTACIONES = false;
 
 const BD_PRODUCTOS = 'jldm'; // nombre de la bd
 const COLECCION_PRODUCTOS = 'productos'; // nombre de la colección de productos

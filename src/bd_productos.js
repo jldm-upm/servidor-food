@@ -20,6 +20,8 @@
 const wlog = require('./configuracion.logger.js');
 
 const {
+    ALMACENAR_INFORMACION_INDIVIDUAL_VOTACIONES,
+    
     URL_MONGODB,
     OPCIONES_MONGODB,
 
@@ -452,21 +454,24 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
   - code: código del producto que se votará
   - sustainability: propiedad de sostenibilidad votada
   - value: valor dado: true, null o false
+  - old_value: true, null o false anterior
   Devuelve:
   - El objeto resultado de actualizar los datos: {'usu': res_usu, 'prod': res_prod}
 */
-async function bd_usuario_votar(usuario, code, sust, value) {
+async function bd_usuario_votar(usuario, code, sust, value, old_value) {
     wlog.silly(`bd_usuario_votar(${usuario},${code},${sust},${value})`);
 
     value = string3boolean(value);
-    const res_usu = await bd_aux_usuario_votar(usuario, code, sust, value);
+    if (ALMACENAR_INFORMACION_INDIVIDUAL_VOTACIONES) {
+        await bd_aux_usuario_votar(usuario, code, sust, value);
+    }
     
     let res_prod = { };
-    if (value !== res_usu.old_value) {
-        res_prod = await bd_aux_producto_votar(code, sust, value, res_usu.old_value);
+    if (value !== old_value) {
+        res_prod = await bd_aux_producto_votar(code, sust, value, old_value);
     }
-    const ok_res = res_prod && res_usu;
-    const res = {'usu': res_usu, 'prod': res_prod, 'ok': ok_res};
+    const ok_res = !!res_prod;
+    const res = { 'prod': res_prod, 'ok': ok_res };
 
     return res;
 } // bd_usuario_votar
