@@ -183,6 +183,9 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
         // TODO: traducir y generalizar
         const valor = facet.includes(':') ? facet : opciones.lang + ":" + facet;
 
+        let sort_by = opciones.sort_by;
+        sort_by['sustainability.sustainability_level'] = -1;
+        
         let query_busqueda = { ...FILTRO_BUSQUEDA_ADICIONAL };
         query_busqueda[facet_tags] = valor;
         wlog.info(JSON.stringify(query_busqueda));
@@ -191,7 +194,7 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
             query_busqueda['countries_tags'] = { $in: opciones.countries };
         }
         
-        result = await col_productos.find(query_busqueda).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
+        result = await col_productos.find(query_busqueda).sort(sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
 
         result = result.filter(val => !!val); // eliminar valores nulos
     } else {
