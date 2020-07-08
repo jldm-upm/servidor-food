@@ -3,7 +3,7 @@
 URL='https://world.openfoodfacts.org'
 
 echo "Iniciando actualización desde: $URL"
-for tax in 'additives_classes.json' 'additives.json' 'allergens.json' 'brands.json' 'countries.json' 'ingredients_analysis.json' 'ingredients.json' 'labels.json' 'languages.json' 'nova_groups.json' 'nutrient_levels.json' 'states.json';
+for tax in 'additives_classes.json' 'additives.json' 'allergens.json' 'brands.json' 'countries.json' 'ingredients_analysis.json' 'ingredients.json' 'labels.json' 'languages.json' 'nova_groups.json' 'nutrient_levels.json' 'states.json' 'stores.json';
 do
     echo "curl $URL/data/taxonomies/$tax -O"
     curl $URL/data/taxonomies/$tax -O
