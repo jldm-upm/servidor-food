@@ -416,21 +416,22 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
 
     // si ese usuario ya había votado ese campo: campo de sostenibilidad antiguo
     const p_field_old = `sustainability.${sust}_${old_value}`;
-    
-    let p_field_old_inc = 0;
-    if (old_value !== null) {
-        if (producto.sustainability) {
-            p_field_old_inc = producto.sustainability[sust + "_" + old_value] > 0 ? -1 : 0;
-        }
-    }
+    let p_field_old_inc = -1;
+
     // campo valoración global de sostenibilidad
     const p_field_sustainability = 'sustainability.sustainability_level';
-    const p_field_sustainability_set = calcular_sostenibilidad (producto);
+    const producto_aux = { ...producto };
+    producto_aux.sustainability[sust + '_' + old_value] = Math.max(0, producto_aux.sustainability[sust + '_' + old_value] - 1);
+    producto_aux.sustainability[sust + '_' + valor] = producto_aux.sustainability[sust + '_' + valor] + 1;
+    const p_field_sustainability_set = calcular_sostenibilidad (producto_aux);
     
     // componer la consulta de actualización
     const query_aux_inc = { };
     query_aux_inc[p_field] = 1;
-    query_aux_inc[p_field_old] = p_field_old_inc;
+
+    if ((old_value !== valor) && (producto.sustainability[sust + "_" + old_value] > 0)) {
+        query_aux_inc[p_field_old] = p_field_old_inc; // -1
+    }
     const query_aux_set = { };
     query_aux_set[p_field_sustainability] = p_field_sustainability_set;
     const query = { $inc: query_aux_inc, $set: query_aux_set };
@@ -460,7 +461,7 @@ async function bd_aux_producto_votar(code, sust, valor, old_value) {
   - El objeto resultado de actualizar los datos: {'usu': res_usu, 'prod': res_prod}
 */
 async function bd_usuario_votar(usuario, code, sust, value, old_value) {
-    wlog.silly(`bd_usuario_votar(${usuario},${code},${sust},${value})`);
+    wlog.silly(`bd_usuario_votar(${usuario},${code},${sust},${value},${old_value})`);
 
     value = string3boolean(value);
     if (ALMACENAR_INFORMACION_INDIVIDUAL_VOTACIONES) {

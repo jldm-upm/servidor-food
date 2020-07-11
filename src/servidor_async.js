@@ -936,21 +936,20 @@ async function user_vote(req, res, next) {
 
     const username = req.body.un,
           session_id = req.body.id,
-          timestamp_li = req.body.ts;
+          timestamp_li = req.body.ts,
+          old_value = req.body.old_value;
 
     const code = req.params.code,
           sustainability = req.params.sustainability,
-          value = req.params.value,
-          old_value = req.params.old_value;
+          value = req.params.value;
 
     let json_res = { status: 1, status_verbose: 'OK' };
-    
     try {
         // comprobar si la sesión es válida:
         if (username && session_id) {
             let session = getSesion(session_id);
             if (session && (session.un === username)) {
-                // obtener los datos de este usuario
+                // obtener los datos de este usuario                
                 const res = await bd_usuario_votar(username, code, sustainability, value, old_value);
                 // wlog.silly(`user_vote.res(bd_usuario_votar)=${JSON.stringify(res)}`);
                 if (res && (res.ok)) {
@@ -972,7 +971,8 @@ async function user_vote(req, res, next) {
     } catch (error) {
         json_res = error_json(error);
     }
-    
+
+    // wlog.silly(`RES VOT: ${JSON.stringify(json_res)}`);
     res.send(json_res);
 }; // async user_vote
 
