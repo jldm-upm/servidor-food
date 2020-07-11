@@ -556,11 +556,11 @@ function sostenibilidad_producto(producto) {
     wlog.silly(`sostenibilidad_producto(${producto ? producto._id : null})`);
     let res = Object.assign(producto);
     if (producto && producto.code) {
-        if (!(producto.sustainability)) {
+        if (!(producto['sustainability'])) {
             res['sustainability'] = datos_sostenibilidad;
         } else {
-            // completar los datos
-            Object.assign(res['sustainability'], datos_sostenibilidad, res.sustainability);
+            // completar los datos            
+            res['sustainability'] = { ...datos_sostenibilidad, ...res.sustainability };
             // wlog.silly(`sostenibilidad_producto.res=${JSON.stringify(res.sustainability)}`);
         }
     }
