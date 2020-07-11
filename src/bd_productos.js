@@ -203,7 +203,8 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
         result = null;
     };
 
-    return result;
+    const res = result.map(sostenibilidad_producto);
+    return res
 } // bd_buscar_category_products
 
 /*
