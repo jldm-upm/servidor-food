@@ -1,0 +1,8 @@
+├─ MIT: 189
+├─ ISC: 44
+├─ BSD-3-Clause: 7
+├─ Apache-2.0: 6
+├─ BSD-2-Clause: 1
+├─ (BSD-2-Clause OR MIT OR Apache-2.0): 1
+└─ UNKNOWN: 1
+
