@@ -522,23 +522,41 @@ const datos_sostenibilidad_usuario_producto = {
 */
 function calcular_sostenibilidad (producto) {
     wlog.silly('calcular_sostenibilidad(...)');
+    let res = CTE_ESCALADO / 2.0;
     let res_med = { };
+    let res_total = { };
+    let vot_totales = 0;
     let sum = 0.0;
     
     if (producto.sustainability) {
         // recorrer todos los parámetros de sostenibilidad
         for (let k in datos_sostenibilidad_usuario_producto) {
-            // valor 0 a 1.0 de la opinión de los usuarios sobre ese parámetro para ese producto:
-            let k_ok = producto.sustainability[k + "_true"] || 0;
-            let k_un = producto.sustainability[k + "_null"] || 0;
-            let k_mk = producto.sustainability[k + "_false"] || 0;
+            if (producto.sustainability[k + "_true"] || producto.sustainability[k + "_false"]) {
+                let k_ok = producto.sustainability[k + "_true"] || 0;
+                // let k_un = (producto.sustainability[k + "_null"] || 0) + (producto.sustainability[k + "_undefined"] || 0);
+                let k_mk = producto.sustainability[k + "_false"] || 0;
 
-            res_med[k] = k_ok / Math.max(1, (1.0 * (k_ok + k_un + k_mk)));
-            sum += k_ok + k_un + k_mk > 0 ? k_ok / (1.0 * (k_ok + k_un + k_mk)) : 0;
+                let k_total = k_ok + k_mk;
+                vot_totales = vot_totales + k_total;
+                // valor 0 a 1.0 de la opinión de los usuarios sobre ese parámetro para ese producto:
+                if (k_total !== 0) {
+                    res_med[k] = k_ok / (1.0 * k_total);
+                } else { // no debería entrar
+                    res_med[k] = 0.5;
+                };
+                console.log(`${k}=${res_med[k]}`);
+            }
         };
-    }
 
-    const res = (sum / Math.max(1, (1.0 * Object.values(datos_sostenibilidad_usuario_producto).length))) * CTE_ESCALADO;
+        for (let i in res_med) {
+            res += (res_med[i] * CTE_ESCALADO);
+        };
+        console.log(res);
+        res = res / (1.0 * (Object.keys(res_med).length));
+        console.log(res);
+    }; // else res = CTE_ESCALADO / 2.0
+    wlog.silly(`calcular_sostenibilidad = ${res}`);
+    
     return res;
 }  // calcular_sostenibilidad
 
