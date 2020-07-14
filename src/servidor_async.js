@@ -870,8 +870,10 @@ async function user_save(req, res, next) {
     const username = req.body.un,
           session_id = req.body.id,
           timestamp_li = req.body.ts,
-          conf = req.body.conf;
+          conf = req.body.conf,
+          vot = req.body.vot;
 
+    const ahora_t = getUnixTime();
     let json_res = { status: 1 };
     
     try {
@@ -881,7 +883,7 @@ async function user_save(req, res, next) {
                 json_res['status'] = 0;
                 json_res['status_verbose'] = `Sesión ${session_id} no encontrada`;
             } else if ((session.un === username) && (session.ts = timestamp_li)) {
-                const res = await bd_usuario_salvar(username, conf);
+                const res = await bd_usuario_salvar(username, conf, vot, ahora_t);
                 if (!(res.result.ok == 1)) {
                     json_res['status'] = 0;
                     json_res['status_verbose'] = `No se pudo salvar`;

@@ -332,7 +332,7 @@ async function bd_usuario_borrar(usuario) {
   Devuelve:
   - El objeto usuario encontrado
 */
-async function bd_usuario_salvar(usuario, conf) {
+async function bd_usuario_salvar(usuario, conf, vot, timestamp) {
     wlog.silly(`bd_usuario_salvar(${usuario},${JSON.stringify(conf)})`);
 
     const usuDoc = await bd_usuario_buscar(usuario);
@@ -342,7 +342,7 @@ async function bd_usuario_salvar(usuario, conf) {
         const db = await c.db(BD_USUARIOS);
         const col_usuarios = await db.collection(COLECCION_USUARIOS);
 
-        const res = await col_usuarios.updateOne({ "_id": usuario}, { $set: { "conf": conf } }, BD_WRITE_CONCERN );
+        const res = await col_usuarios.updateOne({ "_id": usuario}, { $set: { "conf": conf, "vot": vot, "update_t": timestamp } }, BD_WRITE_CONCERN );
         return res;
     } else {
         return null;
