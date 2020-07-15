@@ -121,7 +121,7 @@ async function bd_buscar_regexp_barcode_product(regexp_barcode, opciones = OPCIO
 }; // bd_buscar_regexp_barcode_product
 
 /*
-  Función para buscar los valores distintos (facets )que contiene el campo
+  Función para buscar los valores distintos (facets) que contiene el campo
 
   Parámetros:
   - campo: una propiedad de los productos
@@ -204,7 +204,7 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
     };
 
     const res = result.map(sostenibilidad_producto);
-    return res
+    return res;
 } // bd_buscar_category_products
 
 /*
@@ -217,7 +217,7 @@ async function bd_buscar_category_products(category, facet, opciones = OPCIONES_
   - Todos los productos que devuelva la consulta
 */
 async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
-    wlog.silly(`bd_buscar(${JSON.stringify(query)}, ${JSON.stringify(opciones)}})`);
+    wlog.silly(`bd_buscar_codes(${JSON.stringify(query)}, ${JSON.stringify(opciones)}})`);
 
     opciones = { ...OPCIONES_DEFECTO, ...opciones };
 
@@ -226,9 +226,10 @@ async function bd_buscar_codes(query, opciones = OPCIONES_DEFECTO) {
     const col_productos = await db.collection(COLECCION_PRODUCTOS);
 
     let result = await col_productos.find(query).sort(opciones.sort_by).skip(opciones.skip).limit(opciones.page_size).toArray();
-    result = result.filter(val => !!val); // eliminar valores nulos
+    let res = result.filter(val => !!val); // eliminar valores nulos
+    res = res.map(sostenibilidad_producto);
 
-    return result;
+    return res;
 }; // bd_buscar
 
 /*
@@ -544,16 +545,15 @@ function calcular_sostenibilidad (producto) {
                 } else { // no debería entrar
                     res_med[k] = 0.5;
                 };
-                console.log(`${k}=${res_med[k]}`);
             }
         };
 
         for (let i in res_med) {
             res += (res_med[i] * CTE_ESCALADO);
         };
-        console.log(res);
+
         res = res / (1.0 * (Object.keys(res_med).length));
-        console.log(res);
+
     }; // else res = CTE_ESCALADO / 2.0
     wlog.silly(`calcular_sostenibilidad = ${res}`);
     

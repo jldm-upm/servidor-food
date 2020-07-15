@@ -13,7 +13,7 @@ const SERVIDOR = '127.0.0.1';
 const PUERTO = 8000;
 const URL_BASE = `http://${SERVIDOR}:${PUERTO}`;
 
-const TIEMPO_RAZONABLE_DE_RESPUESTA_MS = 15000;
+const TIEMPO_RAZONABLE_DE_RESPUESTA_MS = 125000;
 
 // function httpGet(url) {
 //     return new Promise(function(resolve, reject) {
@@ -142,7 +142,7 @@ describe('Productos', function() {
         });
     });
     describe('"/cgi/search.pl", api_search_products_json', function() {
-        const q = "/cgi/search.pl?action=display&sort_by=unique_scans_n&page_size=20&action=display"; 
+        const q = "/cgi/search.pl?action=display&sort_by=last_modified_t&page_size=20"; 
         it(`${q} debe devolver los productos filtrados y ordenados según la consulta`, async function() {
 
             const res = await httpGet(`${URL_BASE}${q}`);
@@ -154,7 +154,7 @@ describe('Productos', function() {
             assert(res.data.count == res.data.products.length,
                    `El tamaño de array de productos debe de coindicidir con el campo count`);
         });
-        const q2 = "/cgi/search.pl?page_size=20&tagtype_0=categories&tag_contains_0=contains&tag_0=cereals"; 
+        const q2 = "/cgi/search.pl?page_size=2&tagtype_0=categories&tag_contains_0=contains&tag_0=cereals&sort_by=last_modified_t"; 
         it(`${q2} debe devolver los productos filtrados y ordenados según la consulta`, async function() {
 
             const res = await httpGet(`${URL_BASE}${q2}`);
