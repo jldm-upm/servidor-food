@@ -10,7 +10,7 @@
 
 ** Descargar/Actualizar datos estáticos de OpenFoodFacts
  #+BEGIN_SRC sh
-
+ # con update_tax.sh copiado/linkado en el directorio src/static/tax
  npm run gettax
 
  #+END_SRC
